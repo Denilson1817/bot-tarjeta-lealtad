@@ -85,8 +85,10 @@ Problemas:
 
 ## 5. Información pendiente para construirlo
 
-- [ ] **Imagen PNG** de la tarjeta (colocarla en la carpeta del proyecto) para mapear las coordenadas de cada X. *(El dueño la compartirá.)*
-- [ ] **Número de casillas** de la tarjeta y qué pasa al completarla (¿premio?, ¿se reinicia a 0?). *(Se deduce de la imagen / `/speckit-clarify`.)*
+- [x] **Imagen de la tarjeta:** recibida → `docs/referencia/tarjeta-ejemplo.jpeg` (ver 5.2).
+- [x] **Número de casillas:** 9 (cuadrícula 3×3).
+- [ ] **Qué pasa al completarla** (¿premio?, ¿se reinicia a 0?) → `/speckit-clarify`.
+- [ ] **Assets de producción:** plantilla vacía, flor con transparencia y fuente del nombre (ver 5.2).
 - [x] **Canal de envío:** WhatsApp. El bot devuelve la imagen al dueño y este la reenvía desde el iPhone.
 - [x] **Dónde se ejecutará:** alwaysdata (igual que el bot de finanzas).
 
@@ -99,7 +101,7 @@ Lenguaje: **Python**, pero con herramientas modernas para practicar desarrollo g
 | Gestión de proyecto / deps | `uv` + `pyproject.toml` | Rápido, lockfile reproducible (`uv.lock`) |
 | Python | 3.12+ | Compatible con alwaysdata |
 | Bot de Telegram | `aiogram` 3 (async) | Router/filtros modernos, distinto a `python-telegram-bot` usado antes |
-| Imagen | `Pillow` | Superponer X sobre la plantilla PNG |
+| Imagen | `Pillow` | Superponer las marcas (flor) y el nombre sobre la plantilla |
 | Persistencia | SQLite + `SQLAlchemy` 2.0 (tipado) | Un archivo, sin servidor; historial de citas para `/deshacer` |
 | Configuración | `pydantic-settings` + `.env` | Token y ID del dueño fuera del código |
 | Calidad | `ruff` (lint + format), `mypy` | Estilo y tipos consistentes |
@@ -107,10 +109,30 @@ Lenguaje: **Python**, pero con herramientas modernas para practicar desarrollo g
 | Despliegue | alwaysdata **Service** con long polling | Sin dominio/webhook; proceso persistente |
 
 
+## 5.2 Análisis de la tarjeta real (2026-10-25)
+
+Referencia: `docs/referencia/tarjeta-ejemplo.jpeg` (ejemplo con 6 de 9 casillas marcadas).
+
+- **Formato:** JPEG, 1050 × 600 px.
+- **Casillas:** 9 círculos blancos en cuadrícula 3×3, Ø ≈ 118 px.
+  - Centros aproximados — columnas x ≈ 585, 770, 955; filas y ≈ 120, 301, 483.
+  - Orden de llenado observado: por filas, de izquierda a derecha y de arriba abajo.
+- **La marca no es una "X":** cada cita se marca con una **flor de lirio rosa** dentro del círculo.
+- **La tarjeta es personalizada:** lleva el **nombre del cliente** en fuente manuscrita sobre la
+  línea de la izquierda (en el ejemplo, "Carmen"). El bot debe renderizar también el nombre.
+- Texto fijo: "Tarjeta de lealtad de:" y "Bienvenida a tu espacio! muchas gracias por tu confianza".
+
+**Assets necesarios para generar tarjetas** (el ejemplo no sirve como plantilla porque ya trae
+nombre y flores):
+
+1. Plantilla **vacía**: fondo con los 9 círculos blancos y sin nombre.
+2. La **flor** como PNG con fondo transparente (o el círculo con flor completo).
+3. La **fuente** del nombre (archivo `.ttf`/`.otf`) y la usada en el diseño, si es de Canva.
+
 ## 6. Próximos pasos
 
 1. Responder las preguntas de la sección 5.
-2. Mapear las posiciones de las X en la plantilla.
+2. Conseguir los assets de producción y mapear las casillas (ver 5.2).
 3. Construir el MVP: `/cita`, `/clientes`, `/deshacer`.
 4. Desplegar y probar con clientes reales.
 5. (Opcional) Fase 2: tarjeta digital con link por cliente.
