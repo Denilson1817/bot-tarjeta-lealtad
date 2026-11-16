@@ -18,13 +18,13 @@ mantenimiento sin aportar valor.
 ### II. Lógica de dominio separada de Telegram
 
 - El conteo de citas, el render de la tarjeta y la persistencia viven en módulos Python
-  puros que NO importan `aiogram`.
-- Los handlers de `aiogram` son una capa delgada de entrada/salida: interpretan el
+  puros que NO importan la librería de Telegram (hoy `python-telegram-bot`, módulo `telegram`).
+- Los handlers de Telegram son una capa delgada de entrada/salida: interpretan el
   comando, llaman al dominio y devuelven la respuesta.
 - Todo el dominio DEBE poder ejercitarse desde pytest sin red ni token de Telegram.
 
 **Razón:** permite probar y reutilizar la lógica (p. ej. en la fase 2 web) sin depender
-del bot.
+del bot, y cambiar de librería de Telegram sin tocar el dominio.
 
 ### III. TDD en el dominio (NO NEGOCIABLE)
 
@@ -71,14 +71,18 @@ del bot.
 - El sitio puede dormirse tras un periodo sin peticiones y despertar con la siguiente: el
   arranque DEBE ser rápido y la corrección de los datos NO DEBE depender de estado en memoria.
 - El despliegue se reduce a `uv sync` + reinicio del sitio; no requiere Docker.
-- Consumo de recursos mínimo (el plan Free da 256 MB de RAM para toda la cuenta): SQLite en un
-  archivo, sin dependencias de sistema más allá de las wheels. El servidor web del webhook DEBE
-  salir de dependencias ya presentes (`aiohttp`, que llega con `aiogram`), salvo justificación
-  en el plan.
+- Consumo de recursos mínimo: SQLite en un archivo, sin dependencias de sistema más allá de
+  las wheels. El plan Free da 256 MB de RAM para toda la cuenta, compartidos con el bot de
+  finanzas del dueño: el bot DEBE caber junto a él con margen, según el presupuesto de memoria
+  medido y verificado en el plan.
+- El servidor web del webhook DEBE ser ligero y seguir el mismo patrón que el bot de finanzas
+  del dueño (Starlette + uvicorn).
 
 **Razón:** mantener el hosting gratuito con un despliegue repetible, igual que el bot de
 finanzas del dueño. El plan Free de alwaysdata no admite *Services*, así que un proceso con
-long polling no es viable en producción.
+long polling no es viable en producción. La memoria es el recurso más escaso: con `aiogram` el
+bot ocupaba ~186 MB (más los ~77 MB del bot de finanzas, por encima de 256 MB); con
+`python-telegram-bot`, ~96 MB.
 
 ## Restricciones técnicas (stack)
 
@@ -86,8 +90,8 @@ long polling no es viable en producción.
 |------|-------------|
 | Lenguaje | Python 3.12+ |
 | Proyecto y dependencias | `uv`, `pyproject.toml`, `uv.lock` versionado |
-| Bot de Telegram | `aiogram` 3 (async) |
-| Servidor web del webhook | `aiohttp` (llega con `aiogram`; no es una dependencia nueva) |
+| Bot de Telegram | `python-telegram-bot` 22 (async) |
+| Servidor web del webhook | `starlette` + `uvicorn` (mismo patrón que el bot de finanzas) |
 | Imagen | `Pillow` |
 | Persistencia | SQLite + `SQLAlchemy` 2.0 con tipado (`Mapped[...]`) |
 | Configuración | `pydantic-settings` + `.env` |
@@ -119,4 +123,4 @@ Añadir una dependencia nueva DEBE justificarse en el plan de la feature corresp
 - Revisión de cumplimiento: al cerrar cada feature se confirma que los gates de calidad y
   los principios II–V se respetaron.
 
-**Version**: 2.0.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-11-16
+**Version**: 3.0.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-11-16
