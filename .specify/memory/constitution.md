@@ -57,15 +57,28 @@ del bot.
 
 **Razón:** contiene datos de clientes y un token con control total del bot.
 
-### VI. Compatible con alwaysdata
+### VI. Compatible con alwaysdata (plan Free)
 
-- La aplicación DEBE ejecutarse como un *Service* de alwaysdata usando long polling (sin
-  webhook ni dominio propio).
-- El despliegue se reduce a `uv sync` + reinicio del servicio; no requiere Docker.
-- Consumo de recursos mínimo: SQLite en un archivo, sin dependencias de sistema más allá
-  de las que Pillow ya resuelve con wheels.
+- En producción la aplicación DEBE correr en alwaysdata como sitio de tipo *User program* que
+  recibe los mensajes de Telegram por webhook HTTPS en una dirección gratuita `*.alwaysdata.net`
+  (sin dominio propio). No se usan *Services*: el plan Free no los admite.
+- El servidor web DEBE escuchar en la IP y el puerto que alwaysdata entrega en `$IP` y `$PORT`.
+- Cada petición del webhook DEBE validarse con el *secret token* de Telegram, además del filtro
+  del dueño (principio V).
+- En desarrollo local se usa long polling con un bot de pruebas. El modo se elige por
+  configuración (definir `WEBHOOK_URL` activa el webhook), sin cambiar código; ambos modos
+  comparten handlers, dominio y persistencia.
+- El sitio puede dormirse tras un periodo sin peticiones y despertar con la siguiente: el
+  arranque DEBE ser rápido y la corrección de los datos NO DEBE depender de estado en memoria.
+- El despliegue se reduce a `uv sync` + reinicio del sitio; no requiere Docker.
+- Consumo de recursos mínimo (el plan Free da 256 MB de RAM para toda la cuenta): SQLite en un
+  archivo, sin dependencias de sistema más allá de las wheels. El servidor web del webhook DEBE
+  salir de dependencias ya presentes (`aiohttp`, que llega con `aiogram`), salvo justificación
+  en el plan.
 
-**Razón:** mantener el hosting gratuito/barato y un despliegue repetible.
+**Razón:** mantener el hosting gratuito con un despliegue repetible, igual que el bot de
+finanzas del dueño. El plan Free de alwaysdata no admite *Services*, así que un proceso con
+long polling no es viable en producción.
 
 ## Restricciones técnicas (stack)
 
@@ -74,6 +87,7 @@ del bot.
 | Lenguaje | Python 3.12+ |
 | Proyecto y dependencias | `uv`, `pyproject.toml`, `uv.lock` versionado |
 | Bot de Telegram | `aiogram` 3 (async) |
+| Servidor web del webhook | `aiohttp` (llega con `aiogram`; no es una dependencia nueva) |
 | Imagen | `Pillow` |
 | Persistencia | SQLite + `SQLAlchemy` 2.0 con tipado (`Mapped[...]`) |
 | Configuración | `pydantic-settings` + `.env` |
@@ -105,4 +119,4 @@ Añadir una dependencia nueva DEBE justificarse en el plan de la feature corresp
 - Revisión de cumplimiento: al cerrar cada feature se confirma que los gates de calidad y
   los principios II–V se respetaron.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-25
+**Version**: 2.0.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-11-16
