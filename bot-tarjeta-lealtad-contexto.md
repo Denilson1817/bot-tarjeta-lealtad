@@ -1,6 +1,8 @@
 # Bot Tarjeta de Lealtad — Contexto del proyecto
 
-> Estado: **idea / definición**. Aún no hay código.
+> Estado: **MVP implementado** en la rama `001-registro-citas-tarjeta` (2026-11-16): 166 pruebas en
+> verde. Falta validarlo desde el iPhone (`specs/001-registro-citas-tarjeta/quickstart.md` §5) y
+> desplegarlo en alwaysdata (§6).
 
 ## 1. El problema
 
@@ -147,8 +149,8 @@ nombre y flores):
 
 ## 6. Próximos pasos
 
-1. Responder las preguntas de la sección 5.
-2. Conseguir los assets de producción y mapear las casillas (ver 5.2).
-3. Construir el MVP: `/cita`, `/clientes`, `/deshacer`.
+1. ✅ Responder las preguntas de la sección 5.
+2. ✅ Conseguir los assets de producción y mapear las casillas (ver 5.2).
+3. ✅ Construir el MVP: `/cita`, `/alta`, `/deshacer`, `/tarjeta`, `/clientes` y `/ayuda`.
 4. Desplegar y probar con clientes reales.
 5. (Opcional) Fase 2: tarjeta digital con link por cliente.
