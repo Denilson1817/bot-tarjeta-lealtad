@@ -12,6 +12,7 @@ htmlcov/
 .env
 *.db
 *.sqlite3
+data/
 output/
 
 # Editor / SO
