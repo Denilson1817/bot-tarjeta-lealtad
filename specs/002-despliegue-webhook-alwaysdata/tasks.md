@@ -254,13 +254,10 @@ la computadora apagada.
   - **webhook**: `crear_aplicacion(..., con_updater=False)`, `crear_app_web(...)` y
     `uvicorn.run(app_web, host=ajustes.ip, port=ajustes.port, access_log=False)`;
   - en el log: "modo webhook en IP:PORT".
-- [ ] T023 [US1] Medir la memoria (FR-015) de `src/tarjeta_lealtad/bot/web.py` con un script
-  temporal fuera del repositorio, en el scratchpad. El script importa `tarjeta_lealtad.bot.app` y `bot.web`, construye la aplicación y el
-  `crear_app_web` con `FakeTelegramAPI`, genera una tarjeta e imprime el RSS. Debe quedar
-  < 120 MB. Anotar la cifra en `specs/002-despliegue-webhook-alwaysdata/research.md` §2.
-  Corregir `specs/002-despliegue-webhook-alwaysdata/quickstart.md` §1: hoy sugiere arrancar el
-  modo webhook en local, lo que registraría un webhook falso en el bot de pruebas. Debe describir
-  este procedimiento.
+- [ ] T023 [US1] Medir la memoria (FR-015) de `src/tarjeta_lealtad/bot/web.py` con el procedimiento
+  de `quickstart.md` §1: un script temporal en el scratchpad con `FakeTelegramAPI`; **nunca** se
+  arranca el modo webhook en local. Debe quedar < 120 MB. Anotar la cifra en
+  `specs/002-despliegue-webhook-alwaysdata/research.md` §2.
 - [ ] T024 [US1] Correr los gates de `pyproject.toml` y dejarlos en verde.
 
 **Checkpoint**: el modo webhook está listo y probado sin red.
@@ -318,17 +315,22 @@ la computadora apagada.
 
   Cubre FR-018 – FR-020.
 - [ ] T029 [US3] Marcar las tareas hechas en `specs/002-despliegue-webhook-alwaysdata/tasks.md`,
-  correr los gates, hacer commit e integrar la rama a `main` con `git merge --no-ff` (constitución).
+  correr los gates y hacer commit en la rama `002-…`. La integración a `main` es T035, después de
+  validar en producción (constitución: "integrada a `main` al terminar").
 - [ ] T030 [US3] Crear el repositorio público en GitHub con el contenido versionado (`README.md`,
-  `src/`, `specs/`…) y subir `main`:
-  `gh repo create Denilson1817/bot-tarjeta-lealtad --public --source . --remote origin --push`.
+  `src/`, `specs/`…) y subir `main` y la rama, según `quickstart.md` §2.1:
+  `gh repo create Denilson1817/bot-tarjeta-lealtad --public --source . --remote origin`, luego
+  `git push -u origin main` y `git push -u origin 002-despliegue-webhook-alwaysdata`.
   Antes de subir, comprobar que `git ls-files | grep -E '(^|/)\.env$|\.db$|^data/'` no devuelve
   nada (lo cubre `.gitignore`); después, que `gh repo view --json visibility` dice `PUBLIC`.
-- [ ] T031 [US3] Primera publicación, siguiendo `README.md` §3: uv, clon, entorno con el Python 3.12
-  de alwaysdata, `.env` de producción y sitio *User program* en `CUENTA.alwaysdata.net/tarjeta`.
+- [ ] T031 [US3] Primera publicación, siguiendo `README.md` §3 pero clonando **la rama de la
+  feature** (`git clone -b 002-despliegue-webhook-alwaysdata …`, `quickstart.md` §2.2): uv, clon,
+  entorno con el Python 3.12 de alwaysdata, `.env` de producción y sitio *User program* en
+  `CUENTA.alwaysdata.net/tarjeta`.
   **Manual**: la hace el dueño con su acceso SSH y al panel.
 - [ ] T032 [US3] Comprobación de [quickstart.md](quickstart.md) §2.4, filas 1–5: `ok` en el
-  navegador, 403 sin token, `/ayuda` del bot de producción, `/saldo` del bot de finanzas y logs.
+  navegador, 403 sin token, `/ayuda` del bot de producción, `/saldo` del bot de finanzas, logs y
+  disco < 300 MB.
   **Manual** (dueño).
 
 **Checkpoint**: el bot de producción responde desde alwaysdata y el bot de finanzas sigue intacto.
@@ -338,15 +340,27 @@ la computadora apagada.
 ## Phase 6: Polish & Cross-Cutting Concerns
 
 - [ ] T033 Validación en producción de `quickstart.md` §3 con la computadora apagada (SC-001,
-  SC-003): la tabla de la 001 y las filas 6–8. **Manual** (dueño).
+  SC-003): la tabla de la 001 y las filas 6–8. La fila 6 mide además el arranque (< 10 s en el
+  log, FR-012) y vuelve a revisar `/saldo` del bot de finanzas (SC-006). **Manual** (dueño).
 - [ ] T034 [P] Actualizar `bot-tarjeta-lealtad-contexto.md`:
   - estado "publicado en alwaysdata (webhook)";
   - decisiones: plan Free sin Services, sitio en `/tarjeta`, cambio a python-telegram-bot por
     memoria;
   - marcar el paso 4 de "Próximos pasos".
-- [ ] T035 Cerrar la feature en `specs/002-despliegue-webhook-alwaysdata/tasks.md`: si T033 encontró
-  problemas, corregirlos en una rama nueva con pruebas; si no, marcar la feature como cerrada y
-  hacer el commit final en `main` con `git push`.
+- [ ] T035 Integrar a `main` según `quickstart.md` §3.1, después de T033:
+  - gates en verde, `git merge --no-ff` y `git push`;
+  - en el servidor, pasar a `main` con el procedimiento de actualización y reiniciar el sitio
+    (fila 9: < 5 min y `/clientes` idéntico).
+
+  La parte del servidor es **manual** (dueño).
+- [ ] T036 Ensayo de mantenimiento de `quickstart.md` §3.1, filas 10–11 (SC-007, SC-008, US3-3,
+  US3-4): el agente prepara y sube un cambio mínimo; el dueño lo publica con «Actualizar»,
+  vuelve al commit anterior y regresa a `main`. Se mide el tiempo y se compara `/clientes`.
+  **Manual** (dueño).
+- [ ] T037 Cerrar la feature en `specs/002-despliegue-webhook-alwaysdata/tasks.md`:
+  - **revisión de cumplimiento** de la constitución: gates en verde y principios II–V respetados;
+  - si T033 o T036 encontraron problemas, corregirlos en una rama nueva con pruebas;
+  - si no, marcar la feature como cerrada, hacer commit y `git push`.
 
 ---
 
@@ -358,7 +372,8 @@ la computadora apagada.
   bloquean todo lo demás.
 - **US1 (fase 3)** depende de la fase 2.
 - **US2 (fase 4)** depende de la fase 2. Toca `app.py` igual que T022, así que va después de US1.
-- **US3 (fase 5)** depende de US1 y US2: se publica el código terminado e integrado a `main`.
+- **US3 (fase 5)** depende de US1 y US2: se publica desde la rama de la feature, y se integra a
+  `main` después de validar en producción (T035).
 - **Polish (fase 6)** depende de la publicación (T031–T032).
 
 ### User Story Dependencies
@@ -411,6 +426,7 @@ Task: "T014 src/tarjeta_lealtad/bot/seguridad.py"
 2. Fase 3: modo webhook probado sin red.
 3. US2 (resguardo) y US3 (README, repositorio y publicación).
 4. **Validar en producción** (T033).
+5. Integrar a `main` y ensayar el mantenimiento (T035–T036); cerrar la feature (T037).
 
 ### Riesgos a vigilar
 
@@ -425,5 +441,5 @@ Task: "T014 src/tarjeta_lealtad/bot/seguridad.py"
 
 - Las tareas marcadas [P] usan archivos distintos y no tienen dependencias pendientes.
 - Se recomienda un commit por fase (mensajes en español, como el historial).
-- T031–T033 son **manuales** y las hace el dueño: requieren el token de producción y el acceso a
-  la cuenta.
+- T031–T033, T036 y la parte del servidor de T035 son **manuales** y las hace el dueño: requieren
+  el token de producción y el acceso a la cuenta.

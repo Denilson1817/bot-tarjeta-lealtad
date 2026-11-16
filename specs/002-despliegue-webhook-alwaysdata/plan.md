@@ -71,7 +71,7 @@ cabe junto al bot de finanzas en los 256 MB de la cuenta; con **python-telegram-
 | V. Seguridad | Filtro del dueño en ambos modos (`TypeHandler` en el grupo -1). Token secreto con `compare_digest`. Secretos solo en el `.env` del servidor (`chmod 600`). El repositorio es público, pero sin `.env`, base de datos, ID ni token ([quickstart](quickstart.md)). | ✅ | ✅ |
 | VI. alwaysdata Free | Sitio *User program* en `$IP:$PORT`, webhook HTTPS en `*.alwaysdata.net`, Starlette + uvicorn. Modo por configuración (`WEBHOOK_URL`). Despliegue = `uv sync` + reinicio. Memoria ~96 MB con el bot de finanzas al lado. Arranque estimado < 10 s. | ✅ | ✅ |
 | Stack | Coincide con la tabla v3.0.0 (python-telegram-bot 22, Starlette + uvicorn). aiogram se elimina. | ✅ | ✅ |
-| Flujo | Rama `002-despliegue-webhook-alwaysdata`; gates antes de integrar; enmienda v3.0.0 en su propio commit. | ✅ | ✅ |
+| Flujo | Rama `002-despliegue-webhook-alwaysdata`; la primera publicación se hace desde la rama y la integración a `main` ocurre al terminar, después de validar en producción, con los gates en verde. La enmienda v3.0.0 va en su propio commit. | ✅ | ✅ |
 
 **Resultado**: pasa. Las justificaciones de complejidad están en Complexity Tracking.
 

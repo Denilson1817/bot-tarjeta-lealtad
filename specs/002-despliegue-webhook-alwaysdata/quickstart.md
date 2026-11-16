@@ -17,27 +17,35 @@ Esperado:
 - el bot de pruebas responde igual que en la feature 001 (US2-1);
 - en el log aparece "modo polling".
 
-**Memoria** (FR-015): con el bot arrancado en modo webhook en local (`IP=127.0.0.1`, `PORT=8000`
-y valores de prueba en `WEBHOOK_URL`/`WEBHOOK_SECRET`; las llamadas a Telegram se simulan en las
-pruebas), el RSS del proceso debe quedar **< 120 MB**:
+**Memoria** (FR-015): **no** arranques el modo webhook en la computadora. Al arrancar registraría
+un webhook falso en el bot de pruebas y lo dejaría sin polling. En su lugar, un script temporal
+(fuera del repositorio):
+1. importa `tarjeta_lealtad.bot.app` y `tarjeta_lealtad.bot.web`;
+2. construye la aplicación y el servidor web con el `FakeTelegramAPI` de las pruebas;
+3. genera una tarjeta;
+4. imprime el RSS de `/proc/self/status`.
 
-```bash
-ps -o rss=,cmd= -C python | grep tarjeta_lealtad   # RSS en KB
-```
+Debe quedar **< 120 MB** (medido en el research: ~96 MB).
 
 ## 2. Primera publicación
 
 ### 2.1 Código en GitHub (una vez)
 
-El agente crea el repositorio público con la cuenta autenticada:
-`gh repo create Denilson1817/bot-tarjeta-lealtad --public --source . --remote origin --push`.
+El agente crea el repositorio público con la cuenta autenticada y sube `main` y la rama de la
+feature. La publicación se valida desde la rama; se integra a `main` después (§3.1):
+
+```bash
+gh repo create Denilson1817/bot-tarjeta-lealtad --public --source . --remote origin
+git push -u origin main
+git push -u origin 002-despliegue-webhook-alwaysdata
+```
 
 ### 2.2 En el servidor, por SSH
 
 ```bash
 ssh CUENTA@ssh-CUENTA.alwaysdata.net
 curl -LsSf https://astral.sh/uv/install.sh | sh            # uv en ~/.local/bin
-git clone https://github.com/Denilson1817/bot-tarjeta-lealtad.git
+git clone -b 002-despliegue-webhook-alwaysdata https://github.com/Denilson1817/bot-tarjeta-lealtad.git  # tras integrar: main (§3.1)
 cd bot-tarjeta-lealtad
 PY312="$(PYTHON_VERSION=3.12 python -c 'import sys; print(sys.executable)')"
 ~/.local/bin/uv venv --python "$PY312"
@@ -76,7 +84,7 @@ que uv descargue Python 3.12 (≈ +100 MB de disco; sigue dentro de FR-015).
 | 2 | `curl -s -o /dev/null -w '%{http_code}\n' -X POST https://CUENTA.alwaysdata.net/tarjeta/telegram` | `403` | FR-006, SC-005 |
 | 3 | `/ayuda` al bot de producción desde el iPhone | Responde la ayuda | US3-1 |
 | 4 | `/saldo` al bot de finanzas | Responde como siempre | FR-014, SC-006 |
-| 5 | En el servidor: `ls ~/admin/logs/sites/` y revisar el log del sitio | "modo webhook", "webhook registrado", sin errores | FR-019 |
+| 5 | En el servidor: revisar el log del sitio (`ls ~/admin/logs/sites/`) y el disco (`du -sh ~/bot-tarjeta-lealtad ~/.local/bin/uv`) | "modo webhook", "webhook registrado", sin errores; el disco suma < 300 MB | FR-019, FR-015 |
 
 ## 3. Validación en producción
 
@@ -86,9 +94,22 @@ Con la **computadora apagada**, recorrer contra el bot de producción la tabla d
 
 | # | Acción | Esperado | Cubre |
 |---|--------|----------|-------|
-| 6 | No escribirle al bot durante más de 30 minutos y luego enviar `/clientes` | Responde en < 15 s | US1-2, SC-003 |
+| 6 | No escribirle al bot durante más de 30 minutos y luego enviar `/clientes` | Responde en < 15 s. En el log del sitio, de "modo webhook" a "webhook registrado" pasan < 10 s. Después, `/saldo` del bot de finanzas responde. | US1-2, SC-003, FR-012, SC-006 |
 | 7 | Pulsar un botón que se envió antes de esa pausa | "Esta acción ya se aplicó o caducó…" | US1-4 |
 | 8 | En la computadora, poner temporalmente en `.env` el token de **producción** (sin `WEBHOOK_URL`) y arrancar | Se niega a arrancar: "ya corre en el servidor"; el bot de producción sigue respondiendo. Volver al token de pruebas. | US2-2, FR-013 |
+
+### 3.1 Integrar a `main` y ensayar el mantenimiento
+
+Tras las filas 6–8:
+1. **En la computadora**: gates en verde, `git merge --no-ff` de la rama a `main` y `git push`.
+2. **En el servidor**: pasar a `main` con el procedimiento de actualización (§4), usando
+   `git checkout main && git pull` en lugar de solo `git pull`, y reiniciar el sitio.
+
+| # | Acción | Esperado | Cubre |
+|---|--------|----------|-------|
+| 9 | Antes del paso 2, anotar la salida de `/clientes`; medir cuánto toma el paso 2 | < 5 min; `/clientes` idéntico; `/ayuda` responde | SC-007, SC-008, US3-3 |
+| 10 | Publicar un cambio mínimo (p. ej., una corrección en el README) con «Actualizar» (§4) | < 5 min; `/clientes` idéntico | SC-007, SC-008, FR-019 |
+| 11 | Volver al commit anterior con «Volver a la versión anterior» (§4) y luego regresar a `main` | El bot responde en ambos casos; `/clientes` idéntico | US3-4, FR-019 |
 
 ## 4. Mantenimiento
 

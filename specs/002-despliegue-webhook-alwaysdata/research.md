@@ -185,8 +185,11 @@ salvo `config.py` (§8). `textos.py` y la lógica de los flujos se conservan.
 ## 12. Repositorio público y despliegue
 
 - **Decision**:
-  - crear `Denilson1817/bot-tarjeta-lealtad` público con `gh repo create --public --source .
-    --push` (lo ejecuta el agente con la cuenta ya autenticada, al llegar a esa tarea);
-  - en el servidor, `git clone` por HTTPS y luego `git pull`.
+  - crear `Denilson1817/bot-tarjeta-lealtad` público con `gh repo create --public --source .`
+    y subir `main` y la rama de la feature (lo ejecuta el agente con la cuenta ya autenticada, al
+    llegar a esa tarea);
+  - en el servidor, la primera publicación clona la rama de la feature, para validar antes de
+    integrar (constitución: "integrada a `main` al terminar");
+  - después de integrar, el servidor sigue `main` con `git pull`.
 - **Rationale**: decisión del dueño (spec, FR-018); es el mismo flujo que el bot de finanzas. Los
   commits usan el correo que ya es público en ese repositorio.
