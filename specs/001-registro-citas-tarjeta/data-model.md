@@ -47,7 +47,7 @@ Se calculan a partir de las citas **vigentes** de un cliente (`anulada_en` nula)
 | **Tarjeta en curso** | Las citas vigentes posteriores al último premio vigente. `citas_en_curso` = cuántas son. |
 | **Flores a dibujar** | `min(citas_en_curso, casillas)`. En la respuesta a la cita de premio se dibujan todas las casillas (FR-014). |
 | **Próxima es premio** | `citas_en_curso ≥ N − 1`. |
-| **Faltan para el premio** | `max(N − 1 − citas_en_curso, 0)` flores, y luego la cita de premio. |
+| **Faltan para el premio** | `max(N − citas_en_curso, 1)` citas, contando la de premio (con N = 10 y 6 en curso: 4). |
 | **Última cita** | Máxima `registrada_en` entre las citas vigentes con `origen = bot` (para distinguir clientes, FR-006). |
 | **Resumen del cliente** | `id`, `nombre`, `citas_en_curso`, `tarjetas_completadas`, `ultima_cita`, `proxima_es_premio` (FR-031). |
 

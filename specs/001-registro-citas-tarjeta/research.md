@@ -60,8 +60,8 @@ verifica versiones y API reales y fija las decisiones de diseño que la spec dej
 
 ## 5. Acciones pendientes (confirmaciones y selección)
 
-- **Decision**: guardar en memoria del proceso un registro `token → acción` (tipo, cliente(s),
-  nombre, fecha del comando original). El botón solo lleva el token corto. Al pulsarlo, la acción
+- **Decision**: guardar en memoria del proceso un registro `token → acción` (tipo, comando
+  que la originó, cliente(s), nombre, fecha del comando original). El botón solo lleva el token corto. Al pulsarlo, la acción
   se *extrae* del registro (pop) y se ejecuta; un segundo toque ya no la encuentra y el bot responde
   "Esta acción ya se aplicó o caducó".
 - **Rationale**:
@@ -140,12 +140,13 @@ verifica versiones y API reales y fija las decisiones de diseño que la spec dej
   | Nombre: centro horizontal | x = 245 (centro de la línea) |
   | Nombre: borde inferior de la tinta | y = 370 (la línea empieza en y = 378) |
   | Nombre: ancho máximo de tinta | 390 px (x 50–440, largo de la línea) |
+  | Nombre: borde superior de la tinta | y ≥ 246 (el título termina en y = 234) |
   | Nombre: tamaño de fuente | máximo 117 px (con él "Carmen" mide 86 px de alto, como en el ejemplo); mínimo 36 px |
   | Zona prohibida del ✨ | x 310–354, y 274–323 (destello x 316–348, y 280–317 + 6 px) |
   | Fuente | `assets/fuentes/Sacramento-Regular.ttf`, color blanco |
 
-- **Ajuste del nombre**: se busca el mayor tamaño de fuente ≤ 117 cuya tinta cumpla ancho ≤ 390 y
-  no tenga ningún píxel dentro de la zona del ✨. La comprobación se hace sobre la máscara real del
+- **Ajuste del nombre**: se busca el mayor tamaño de fuente ≤ 117 cuya tinta cumpla ancho ≤ 390,
+  borde superior en y ≥ 246 (para no tocar el título) y ningún píxel dentro de la zona del ✨. La comprobación se hace sobre la máscara real del
   texto, no sobre su caja, porque las minúsculas pueden pasar por debajo del destello. Si el tamaño
   resultante es menor de 36, el nombre se rechaza con `NombreNoCabe`.
 - **Por qué tamaño de fuente y no alto de tinta**: el alto de la tinta depende de las letras. Por
@@ -158,6 +159,9 @@ verifica versiones y API reales y fija las decisiones de diseño que la spec dej
   - Nombres de 19–20 caracteres probados ("María Fernanda Ruiz", "Maximiliana Montoya",
     "Wilhelmina Whitfield", "Itzel Bethel Ballard", "Marisol Del Castillo"…): tamaños 37–50.
   - Con 36 un nombre largo sigue siendo legible a escala de teléfono; con 32 ya cuesta.
+  - Sin el tope superior, "Ángela" e "Íñigo" con tamaño 117 empezarían en y ≈ 202–206 y tocarían
+    el título. Con todas las restricciones quedan en tamaños 60 y 68 (el ✨ es el límite que
+    manda); el tope no cambia ninguno de los tamaños anteriores.
 - **Determinismo**: mismos datos producen los mismos bytes PNG (FR-029). La versión de Pillow
   (que trae FreeType incluido) queda fijada por `uv.lock`.
 - **Salida**: PNG en memoria → `BufferedInputFile(bytes, "tarjeta.png")` → `answer_photo`. Telegram

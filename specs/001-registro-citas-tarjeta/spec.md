@@ -196,7 +196,8 @@ coinciden con las citas registradas y que no se agregó ninguna cita.
   alta y pide un nombre más corto (por ejemplo, solo el nombre de pila).
 - **Nombre con caracteres que la tipografía no puede dibujar** (por ejemplo, emojis): el bot
   rechaza el alta e indica qué caracteres no se admiten. Las letras del español (á, é, í, ó, ú, ü,
-  ñ, mayúsculas incluidas) siempre se admiten.
+  ñ, mayúsculas incluidas) siempre se admiten. Los dígitos no se admiten: se reservan para las
+  citas previas del alta y para el identificador.
 - **Mensaje de otra cuenta de Telegram**: no recibe respuesta alguna y el intento queda en el
   registro de eventos del sistema.
 - **Lista de clientes demasiado larga para un mensaje**: se divide en varios mensajes sin perder
@@ -305,8 +306,8 @@ coinciden con las citas registradas y que no se agregó ninguna cita.
   en la tarjeta de referencia (`docs/referencia/tarjeta-ejemplo.jpeg`, "Carmen" con 86 px de alto).
   Se reduce lo necesario para no superponerse al título, la línea ni el destello ✨, y nunca baja
   de 36 px.
-- **FR-028**: Si un nombre no cabe con el tamaño mínimo o contiene caracteres que la tipografía no
-  puede dibujar, el sistema MUST rechazarlo al dar de alta y pedir otro.
+- **FR-028**: Si un nombre no cabe con el tamaño mínimo, contiene caracteres que la tipografía no
+  puede dibujar o contiene dígitos, el sistema MUST rechazarlo al dar de alta y pedir otro.
 - **FR-029**: Con los mismos datos, la tarjeta generada MUST ser idéntica en cada generación.
 - **FR-030**: Los elementos fijos de la plantilla (título, destello ✨, línea, texto de bienvenida,
   fondo y casillas) MUST quedar intactos en la tarjeta generada.
@@ -351,8 +352,9 @@ coinciden con las citas registradas y que no se agregó ninguna cita.
   baja a menos de 5 minutos.
 - **SC-005**: Escribir el nombre de un cliente existente con otras mayúsculas o sin acentos nunca
   crea un cliente duplicado.
-- **SC-006**: Nombres de hasta 20 caracteres (por ejemplo, "María Fernanda Ruiz") se muestran
-  completos, legibles y sin superponerse a ningún elemento fijo de la plantilla.
+- **SC-006**: Los nombres comunes de hasta 20 caracteres (verificado con una lista representativa;
+  por ejemplo, "María Fernanda Ruiz") se muestran completos, legibles y sin superponerse a ningún
+  elemento fijo de la plantilla; si un nombre no cabe, se rechaza con un motivo claro.
 - **SC-007**: Deshacer una cita deja la tarjeta y el historial exactamente como estaban antes de
   registrarla, incluso cuando esa cita había completado la tarjeta.
 - **SC-008**: Ningún mensaje de una cuenta distinta a la del dueño recibe respuesta.

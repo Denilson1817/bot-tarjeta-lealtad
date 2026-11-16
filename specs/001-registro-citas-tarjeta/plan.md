@@ -56,7 +56,8 @@ ni dependencias de sistema; imágenes solo en memoria
 | Restricciones de stack | Solo herramientas de la constitución. `uv_build` es el backend de empaquetado de uv, no una dependencia de ejecución. SQLAlchemy 2.1 conserva la API tipada 2.0. | ✅ | ✅ |
 | Flujo de desarrollo | Rama `001-registro-citas-tarjeta`. Gates: `ruff check`, `ruff format --check`, `mypy`, `pytest` ([quickstart §3](quickstart.md#3-gates-de-calidad-constitución-obligatorios-antes-de-integrar-a-main)). | ✅ | ✅ |
 
-**Resultado**: sin violaciones; no hace falta llenar Complexity Tracking.
+**Resultado**: sin violaciones. El registro de acciones pendientes queda justificado en Complexity
+Tracking (principio I).
 
 ## Project Structure
 
@@ -137,4 +138,6 @@ que funciona igual en local y en alwaysdata.
 
 ## Complexity Tracking
 
-Sin violaciones de la constitución.
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| Registro de acciones pendientes en memoria (`bot/acciones.py`) | Los datos de un botón de Telegram admiten como máximo 64 bytes (un nombre largo no cabe) y FR-011 exige un solo efecto por toque. | Una tabla en SQLite agrega una entidad sin necesidad (los botones solo caducan tras un reinicio); poner todos los datos en el botón no cabe. |

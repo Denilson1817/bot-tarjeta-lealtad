@@ -42,7 +42,7 @@ def limpiar_nombre(nombre: str) -> str               # recorta y colapsa espacio
 ## `diseno.py` (constantes versionadas)
 
 Rutas de `assets/`, centros de las 9 casillas en orden de llenado, lado y desplazamiento de la
-flor, centro y borde inferior del nombre, ancho máximo, tamaños de fuente máximo (117) y mínimo
+flor, centro, borde inferior y tope superior del nombre, ancho máximo, tamaños de fuente máximo (117) y mínimo
 (36), zona prohibida del ✨ y color. Valores en
 [research §9](../research.md#9-render-de-la-tarjeta-pillow). `CASILLAS = len(CENTROS)`.
 
@@ -106,6 +106,8 @@ class ClienteInexistente(Exception): ...
 
 class ServicioTarjetas:
     def __init__(self, sesiones: sessionmaker[Session], citas_por_tarjeta: int, zona: ZoneInfo) -> None
+    zona: ZoneInfo                  # solo lectura; la usan los textos
+    citas_por_tarjeta: int          # solo lectura
     def buscar(self, texto: str) -> Busqueda
     def validar_nombre(self, nombre: str) -> str                    # nombre limpio; lanza NombreInvalido
     def homonimos(self, nombre: str) -> tuple[ResumenCliente, ...]  # misma forma normalizada

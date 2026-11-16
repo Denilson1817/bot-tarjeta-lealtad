@@ -117,7 +117,8 @@ bot. Todo lo usan las seis historias.
   - `siguiente_es_premio(8, 10)` es falso; `siguiente_es_premio(9, 10)` y
     `siguiente_es_premio(12, 10)` son verdaderos;
   - `flores_a_dibujar(12, 9) == 9`;
-  - `faltan_para_premio(6, 10) == 4` y `faltan_para_premio(9, 10) == 1`.
+  - `faltan_para_premio(6, 10) == 4`, `faltan_para_premio(9, 10) == 1` y
+    `faltan_para_premio(12, 10) == 1`.
 - [ ] T009 [P] Crear `tests/unit/test_render.py` (abrir la salida con `PIL.Image.open(BytesIO(...))`).
   Casos:
   - la salida es un PNG de 1050 × 600;
@@ -129,6 +130,7 @@ bot. Todo lo usan las seis historias.
   - la tinta del nombre (diferencia con la plantilla dentro del rectángulo) queda en x 50–440 y
     y ≤ 370, sin ningún píxel en la zona del ✨ (x 310–354, y 274–323);
   - `ajustar_nombre("Carmen").tamano == 117` e `ajustar_nombre("Isabel").tamano < 117`;
+  - con "Ángela" e "Íñigo", ninguna tinta por encima de y = 246 (no tocan el título);
   - estos nombres de SC-006 caben con `tamano >= 36`: "María Fernanda Ruiz", "Guadalupe
     Hernández", "Wendy Montserrat Paz", "Maximiliana Montoya", "Ximena Guadalupe Mtz", "Marisol Del
     Castillo", "Itzel Bethel Ballard" y "Wilhelmina Whitfield";
@@ -145,7 +147,9 @@ bot. Todo lo usan las seis historias.
   - guardar un `datetime` sin zona lanza `ValueError`;
   - una cita `origen="bot"` con `registrada_en=None` o una `origen="previa"` con fecha →
     `IntegrityError`;
-  - al borrar el último cliente, el siguiente no reutiliza su `id` (`AUTOINCREMENT`).
+  - al borrar el último cliente, el siguiente no reutiliza su `id` (`AUTOINCREMENT`);
+  - al cerrar el motor y abrir uno nuevo sobre el mismo archivo, siguen los clientes y las citas,
+    incluidas las anuladas (FR-034).
 - [ ] T012 [P] Crear `tests/integration/test_servicio_base.py`, insertando clientes y citas
   directamente con las sesiones. Casos:
   - `resumen()` calcula `citas_en_curso`, `tarjetas_completadas`, `ultima_cita` y
@@ -179,7 +183,8 @@ bot. Todo lo usan las seis historias.
   - rutas a `assets/` resueltas con `Path(__file__).resolve().parents[2] / "assets"`;
   - `CENTROS` = las 9 tuplas en orden de llenado `[(584.0, 119.0), (769.5, 119.0), (954.5, 119.0), (584.0, 301.0), …, (954.5, 483.0)]` y `CASILLAS = len(CENTROS)`;
   - `MITAD_FLOR = 57` y la esquina de la flor `(floor(cx) - 57, floor(cy) - 57)`;
-  - `CENTRO_NOMBRE_X = 245`, `BORDE_INFERIOR_NOMBRE = 370`, `ANCHO_MAX_NOMBRE = 390`;
+  - `CENTRO_NOMBRE_X = 245`, `BORDE_INFERIOR_NOMBRE = 370`, `TOPE_SUPERIOR_NOMBRE = 246`,
+    `ANCHO_MAX_NOMBRE = 390`;
   - `TAMANO_MAX = 117`, `TAMANO_MIN = 36`;
   - `ZONA_DESTELLO = (310, 274, 354, 323)` y `COLOR_NOMBRE = (255, 255, 255)`.
 - [ ] T018 [P] Implementar `src/tarjeta_lealtad/conteo.py` (`CitaEvento`, `EstadoTarjetas`, `estado`,
@@ -188,9 +193,9 @@ bot. Todo lo usan las seis historias.
   [vistas derivadas](data-model.md#vistas-derivadas-en-el-dominio-sin-tabla). Sin E/S.
 - [ ] T019 Implementar `src/tarjeta_lealtad/render.py`, después de T017:
   - `ajustar_nombre(nombre)` busca el mayor tamaño ≤ `TAMANO_MAX` cuya **máscara de tinta** tenga
-    ancho ≤ 390 y ningún píxel en `ZONA_DESTELLO`, colocada con centro de tinta en x = 245 y borde
+    ancho ≤ 390, borde superior en y ≥ `TOPE_SUPERIOR_NOMBRE` y ningún píxel en `ZONA_DESTELLO`, colocada con centro de tinta en x = 245 y borde
     inferior en y = 370. Si el tamaño quedaría < 36, lanza `NombreNoCabe`. Usar búsqueda binaria
-    para el ancho y luego bajar de 1 en 1 mientras choque con el ✨;
+    para el ancho y el alto, y luego bajar de 1 en 1 mientras choque con el ✨;
   - `generar_tarjeta(nombre, flores)` pega la flor (canal alfa como máscara) en las casillas
     `0..flores-1`, dibuja el nombre en blanco y devuelve los bytes PNG, sin escribir a disco;
   - carga la plantilla, la flor y la fuente una sola vez (`functools.cache`).
@@ -217,8 +222,8 @@ bot. Todo lo usan las seis historias.
   `dp.update.outer_middleware`, que lee `data["event_from_user"]`, registra un `WARNING` y corta el
   flujo si el remitente no es el dueño (FR-001).
 - [ ] T023 [P] Implementar `src/tarjeta_lealtad/bot/acciones.py`:
-  - `Accion` (dataclass congelada con `tipo`, `cliente_ids`, `nombre`, `fecha_comando` y
-    `citas_previas`);
+  - `Accion` (dataclass congelada con `tipo`, `comando` (`Literal["cita", "deshacer", "tarjeta"]`),
+    `cliente_ids`, `nombre`, `fecha_comando` y `citas_previas`);
   - `AccionesPendientes` (`registrar` → token `secrets.token_urlsafe(8)`; `tomar` con `pop`);
   - `class AccionCB(CallbackData, prefix="a")` con `token: str` y `opcion: str` (un ID, `"nuevo"`,
     `"si"` o `"no"`).
@@ -313,7 +318,7 @@ cada foto muestra el nombre y tantas flores como citas lleva
 
 ### Implementation for User Story 1
 
-- [ ] T032 [P] [US1] Implementar en `src/tarjeta_lealtad/busqueda.py` `normalizar`,
+- [ ] T032 [US1] Implementar en `src/tarjeta_lealtad/busqueda.py`, después de que T028 falle, `normalizar`,
   `limpiar_nombre`, `caracteres_no_admitidos`, `distancia` (Damerau-Levenshtein OSA) y `parecido`,
   según el [research §7–§8](research.md#7-búsqueda-de-clientes). Sin dependencias nuevas.
 - [ ] T033 [US1] Agregar a `src/tarjeta_lealtad/servicio.py`:
@@ -345,7 +350,8 @@ cada foto muestra el nombre y tantas flores como citas lleva
   1. `callback.answer()` y `acciones.tomar(token)`; si devuelve `None` → `ACCION_CADUCADA`;
   2. quitar los botones del mensaje y anotar la elección (`edit_text`);
   3. despachar por `tipo`:
-     - elegir cliente para cita → continúa con la comprobación de mismo día;
+     - elegir cliente → según `accion.comando`: `cita` → comprobación de mismo día; `deshacer` →
+       confirmación de deshacer (US5); `tarjeta` → enviar la foto sin registrar cita (US6);
      - crear y registrar → `crear_cliente` + `registrar_cita` con `fecha_comando`;
      - confirmar mismo día → `registrar_cita` con `fecha_comando`;
      - cancelar → `CANCELADO`.
@@ -362,8 +368,9 @@ cada foto muestra el nombre y tantas flores como citas lleva
 **Goal**: la cita N es la de premio, cierra la tarjeta y la guarda en el historial; la siguiente
 empieza otra tarjeta. N es configurable.
 
-**Independent Test**: 11 citas seguidas a un cliente: avisos en las citas 9 y 10, la tarjeta 1
-queda completada y la cita 11 muestra 1 flor (quickstart §5, filas 7–9).
+**Independent Test**: 11 citas seguidas a un cliente nuevo: avisos en las citas 9 y 10, la tarjeta 1
+queda completada y la cita 11 muestra 1 flor. Las filas 7–9 del quickstart, que usan `/alta` y `#id`,
+se validan en T057.
 
 ### Tests for User Story 2 ⚠️
 
@@ -391,8 +398,9 @@ queda completada y la cita 11 muestra 1 flor (quickstart §5, filas 7–9).
     `flores = diseno.CASILLAS`.
 - [ ] T043 [US2] Completar en `src/tarjeta_lealtad/bot/textos.py` las variantes de `pie_cita` para
   9 de 9 y para premio, según la tabla del [contrato § /cita](contracts/comandos-bot.md#cita-cliente).
-- [ ] T044 [US2] Correr los gates y validar las filas 7–9 de `quickstart.md` §5 y el arranque fallido
-  con `CITAS_POR_TARJETA=8`.
+- [ ] T044 [US2] Correr los gates y validar con el bot de pruebas (sin usar `quickstart.md` §5, filas 7–9):
+  `/cita Prueba` → `Crear` y 10 citas más, confirmando las del mismo día. Deben aparecer los avisos de
+  las citas 9 y 10 y la 11.ª debe mostrar 1 flor. Con `CITAS_POR_TARJETA=8` el bot no debe arrancar.
 
 **Checkpoint**: US1 y US2 funcionan; los ciclos de tarjeta son correctos.
 
@@ -468,14 +476,15 @@ cita del día, avisando si el nombre ya existe.
 
 ### Implementation for User Story 4
 
-- [ ] T054 [P] [US4] Agregar `interpretar_id` a `src/tarjeta_lealtad/busqueda.py`.
+- [ ] T054 [US4] Agregar `interpretar_id` a `src/tarjeta_lealtad/busqueda.py`, después de que T051 falle.
 - [ ] T055 [US4] Extender `ServicioTarjetas.buscar` (`src/tarjeta_lealtad/servicio.py`): primero
   la rama de ID (`Encontrado` o `IdInexistente`); luego, con varias coincidencias exactas,
   `Varios`.
 - [ ] T056 [US4] En `src/tarjeta_lealtad/bot/handlers.py`, manejar `Varios` (teclado sin `Crear`,
   reutilizando la acción "elegir cliente") e `IdInexistente`. Agregar `ID_INEXISTENTE` a
   `src/tarjeta_lealtad/bot/textos.py`.
-- [ ] T057 [US4] Correr los gates y validar la fila 6 de `quickstart.md` §5.
+- [ ] T057 [US4] Correr los gates y validar las filas 6–9 de `quickstart.md` §5 (las 7–9 necesitan
+  `/alta` y `#id`).
 
 **Checkpoint**: ya no se puede registrar una cita a un homónimo equivocado sin que el dueño lo
 elija.
@@ -507,7 +516,9 @@ anulación registrada (quickstart §5, filas 10–11).
     estar en curso.";
   - `Cancelar` no cambia nada; repetir el toque → `ACCION_CADUCADA`;
   - sin citas → "… no tiene citas que deshacer.";
-  - con parecidos no se ofrece `Crear`.
+  - con parecidos no se ofrece `Crear`, y elegir uno lleva a la confirmación de deshacer sin
+    registrar ninguna cita;
+  - `/deshacer` sin argumento → `uso("deshacer")`.
 
 ### Implementation for User Story 5
 
@@ -517,7 +528,8 @@ anulación registrada (quickstart §5, filas 10–11).
   `pie_deshacer(resumen, era_premio, numero)` y `nada_que_deshacer(resumen)`, según el
   [contrato § /deshacer](contracts/comandos-bot.md#deshacer-cliente).
 - [ ] T062 [US5] Implementar `/deshacer` en `src/tarjeta_lealtad/bot/handlers.py` (resolución sin
-  `Crear`) y el caso "confirmar deshacer" del callback.
+  `Crear`), el caso "elegir cliente" con `comando="deshacer"` y el caso "confirmar deshacer" del
+  callback.
 - [ ] T063 [US5] Correr los gates y validar las filas 10–11 de `quickstart.md` §5.
 
 **Checkpoint**: los errores de registro se corrigen desde el bot.
@@ -546,7 +558,8 @@ conteo no cambia (quickstart §5, fila 9).
 - [ ] T066 [P] [US6] Crear `tests/bot/test_handlers_consultas.py`:
   - `/clientes` envía uno o varios mensajes;
   - `/tarjeta Carmen` envía la foto con `pie_tarjeta` y el conteo no cambia;
-  - `/tarjeta` con parecidos no ofrece `Crear`.
+  - `/tarjeta` con parecidos no ofrece `Crear`; elegir uno envía la foto y el conteo no cambia;
+  - `/tarjeta` sin argumento → `uso("tarjeta")`.
 
 ### Implementation for User Story 6
 
@@ -555,7 +568,8 @@ conteo no cambia (quickstart §5, fila 9).
   `SIN_CLIENTES` y `pie_tarjeta`, según el
   [contrato § /clientes y /tarjeta](contracts/comandos-bot.md#clientes).
 - [ ] T069 [US6] Implementar `/clientes` y `/tarjeta` en `src/tarjeta_lealtad/bot/handlers.py`
-  (resolución sin `Crear`; el caso "elegir cliente" del callback también sirve para `/tarjeta`).
+  (resolución sin `Crear`; el caso "elegir cliente" con `comando="tarjeta"` envía la foto **sin
+  registrar cita**).
 - [ ] T070 [US6] Correr los gates y validar con el bot de pruebas `quickstart.md` §5, fila 9, y `/clientes`.
 
 **Checkpoint**: las seis historias funcionan.
@@ -620,8 +634,8 @@ Tras US1, las historias US2, US3, US5 y US6 tocan los mismos archivos (`servicio
 - **Foundational**: las pruebas T007–T015 entre sí. Las implementaciones T016, T017, T018, T020,
   T022, T023 y T024 entre sí; T019 espera a T017, T021 a T018–T020, T025 a T021/T023/T024 y T026 a
   T025.
-- **Cada historia**: sus tareas de pruebas [P] entre sí. En US1, T032 (`busqueda.py`) en paralelo
-  con las pruebas.
+- **Cada historia**: sus tareas de pruebas [P] entre sí. La implementación empieza cuando sus
+  pruebas están escritas y fallan (por ejemplo, T032 después de T028).
 
 ---
 
@@ -634,7 +648,7 @@ Task: "T029 tests/integration/test_servicio_cita.py"
 Task: "T030 tests/bot/test_handlers_cita.py"
 Task: "T031 tests/bot/test_textos.py (pie_cita, etiqueta_cliente, confirmaciones)"
 
-# Luego, en paralelo con el resto de pruebas:
+# Cuando T028 esté en rojo:
 Task: "T032 src/tarjeta_lealtad/busqueda.py"
 ```
 
@@ -659,7 +673,9 @@ Task: "T024 src/tarjeta_lealtad/bot/textos.py"
 1. Fase 1 (Setup) y fase 2 (Foundational).
 2. Fase 3 (US1).
 3. **PARAR Y VALIDAR**: filas 1–4 y 16 del quickstart con el bot de pruebas.
-4. Con esto el dueño ya registra citas y reenvía tarjetas.
+4. Con esto el dueño ya registra citas y reenvía tarjetas en el bot de pruebas. A producción se
+   despliega con todas las historias (T076), porque la ayuda y el mensaje de error ya mencionan
+   `/tarjeta` y los demás comandos.
 
 ### Incremental Delivery
 
