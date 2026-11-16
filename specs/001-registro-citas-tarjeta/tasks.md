@@ -253,7 +253,7 @@ bot. Todo lo usan las seis historias.
   7. `bot.set_my_commands` con los 6 comandos y descripciones en español;
   8. registrar "polling iniciado" y llamar a `dp.start_polling(bot, handle_as_tasks=False)`, **sin**
      descartar los mensajes pendientes.
-- [ ] T027 Verificar la fundación (`tests/` y `src/tarjeta_lealtad/bot/app.py`):
+- [X] T027 Verificar la fundación (`tests/` y `src/tarjeta_lealtad/bot/app.py`):
   - `uv run pytest` muestra en verde todas las pruebas de T007–T015;
   - los gates estáticos pasan;
   - `uv run python -m tarjeta_lealtad` arranca con el `.env` local, `/ayuda` responde desde el iPhone
@@ -357,7 +357,7 @@ cada foto muestra el nombre y tantas flores como citas lleva
      - cancelar → `CANCELADO`.
 
   Siempre se pasa el `ResultadoCita` completo a `pie_cita`.
-- [ ] T038 [US1] Correr los gates y validar con el bot de pruebas `quickstart.md` §5, filas 1–4 y 16.
+- [X] T038 [US1] Correr los gates y validar con el bot de pruebas `quickstart.md` §5, filas 1–4 y 16.
 
 **Checkpoint**: US1 funciona sola. El dueño ya puede sustituir la edición manual.
 
@@ -398,7 +398,7 @@ se validan en T057.
     `flores = diseno.CASILLAS`.
 - [X] T043 [US2] Completar en `src/tarjeta_lealtad/bot/textos.py` las variantes de `pie_cita` para
   9 de 9 y para premio, según la tabla del [contrato § /cita](contracts/comandos-bot.md#cita-cliente).
-- [ ] T044 [US2] Correr los gates y validar con el bot de pruebas (sin usar `quickstart.md` §5, filas 7–9):
+- [X] T044 [US2] Correr los gates y validar con el bot de pruebas (sin usar `quickstart.md` §5, filas 7–9):
   `/cita Prueba` → `Crear` y 10 citas más, confirmando las del mismo día. Deben aparecer los avisos de
   las citas 9 y 10 y la 11.ª debe mostrar 1 flor. Con `CITAS_POR_TARJETA=8` el bot no debe arrancar.
 
@@ -446,7 +446,7 @@ cita del día, avisando si el nombre ya existe.
   - el comando `/alta`: validar, revisar homónimos (`Accion` "crear homónimo"), crear y enviar la
     tarjeta con `enviar_tarjeta`;
   - el caso "crear homónimo" en el despachador del callback.
-- [ ] T050 [US3] Correr los gates y validar las filas 5, 12 y 13 de `quickstart.md` §5.
+- [X] T050 [US3] Correr los gates y validar las filas 5, 12 y 13 de `quickstart.md` §5.
 
 **Checkpoint**: los clientes actuales se pueden migrar con su avance.
 
@@ -483,7 +483,7 @@ cita del día, avisando si el nombre ya existe.
 - [X] T056 [US4] En `src/tarjeta_lealtad/bot/handlers.py`, manejar `Varios` (teclado sin `Crear`,
   reutilizando la acción "elegir cliente") e `IdInexistente`. Agregar `ID_INEXISTENTE` a
   `src/tarjeta_lealtad/bot/textos.py`.
-- [ ] T057 [US4] Correr los gates y validar las filas 6–9 de `quickstart.md` §5 (las 7–9 necesitan
+- [X] T057 [US4] Correr los gates y validar las filas 6–9 de `quickstart.md` §5 (las 7–9 necesitan
   `/alta` y `#id`).
 
 **Checkpoint**: ya no se puede registrar una cita a un homónimo equivocado sin que el dueño lo
@@ -530,7 +530,7 @@ anulación registrada (quickstart §5, filas 10–11).
 - [X] T062 [US5] Implementar `/deshacer` en `src/tarjeta_lealtad/bot/handlers.py` (resolución sin
   `Crear`), el caso "elegir cliente" con `comando="deshacer"` y el caso "confirmar deshacer" del
   callback.
-- [ ] T063 [US5] Correr los gates y validar las filas 10–11 de `quickstart.md` §5.
+- [X] T063 [US5] Correr los gates y validar las filas 10–11 de `quickstart.md` §5.
 
 **Checkpoint**: los errores de registro se corrigen desde el bot.
 
@@ -570,7 +570,7 @@ conteo no cambia (quickstart §5, fila 9).
 - [X] T069 [US6] Implementar `/clientes` y `/tarjeta` en `src/tarjeta_lealtad/bot/handlers.py`
   (resolución sin `Crear`; el caso "elegir cliente" con `comando="tarjeta"` envía la foto **sin
   registrar cita**).
-- [ ] T070 [US6] Correr los gates y validar con el bot de pruebas `quickstart.md` §5, fila 9, y `/clientes`.
+- [X] T070 [US6] Correr los gates y validar con el bot de pruebas `quickstart.md` §5, fila 9, y `/clientes`.
 
 **Checkpoint**: las seis historias funcionan.
 
@@ -587,13 +587,15 @@ conteo no cambia (quickstart §5, fila 9).
   < 1 s con cada nombre de la lista de SC-006 (SC-002).
 - [X] T073 Correr los cuatro gates de la constitución, configurados en `pyproject.toml` (`uv run ruff check`,
   `uv run ruff format --check`, `uv run mypy`, `uv run pytest`) y dejarlos en verde.
-- [ ] T074 Validar completa la tabla de `quickstart.md` §5 con el bot de pruebas, incluidas las filas
+- [X] T074 Validar completa la tabla de `quickstart.md` §5 con el bot de pruebas, incluidas las filas
   14 (otra cuenta) y 15 (bot detenido). Esta tarea es manual: la ejecuta el dueño desde el iPhone.
 - [X] T075 [P] Actualizar `bot-tarjeta-lealtad-contexto.md`: cambiar el estado de "idea /
   definición" a "MVP implementado" y marcar los pasos 2 y 3 de "Próximos pasos".
-- [ ] T076 Integrar la rama a `main` y desplegar en alwaysdata según `quickstart.md`
+- [X] T076 Integrar la rama a `main` y desplegar en alwaysdata según `quickstart.md`
   [§6](quickstart.md#6-despliegue-en-alwaysdata). Es manual y requiere el token de
   producción y acceso a la cuenta.
+  *(2026-11-16: rama integrada a `main`. El despliegue pasa a la feature 002: el plan Free de
+  alwaysdata no admite Services, así que el bot correrá como sitio con webhook.)*
 
 ---
 
