@@ -7,14 +7,20 @@ __pycache__/
 .ruff_cache/
 .coverage
 htmlcov/
+dist/
+*.egg-info/
 
 # Secretos y datos locales
 .env
 *.db
 *.sqlite3
+data/
 output/
 
 # Editor / SO
 .vscode/
 .idea/
 .DS_Store
+Thumbs.db
+*.swp
+*.tmp

@@ -1,6 +1,8 @@
 # Bot Tarjeta de Lealtad — Contexto del proyecto
 
-> Estado: **idea / definición**. Aún no hay código.
+> Estado: **MVP implementado** en la rama `001-registro-citas-tarjeta` (2026-11-16): 166 pruebas en
+> verde. Falta validarlo desde el iPhone (`specs/001-registro-citas-tarjeta/quickstart.md` §5) y
+> desplegarlo en alwaysdata (§6).
 
 ## 1. El problema
 
@@ -87,10 +89,13 @@ Problemas:
 
 - [x] **Imagen de la tarjeta:** recibida → `docs/referencia/tarjeta-ejemplo.jpeg` (ver 5.2).
 - [x] **Número de casillas:** 9 (cuadrícula 3×3).
-- [ ] **Qué pasa al completarla** (¿premio?, ¿se reinicia a 0?) → `/speckit-clarify`.
-- [ ] **Assets de producción:** plantilla vacía, flor con transparencia y fuente del nombre (ver 5.2).
+- [x] **Qué pasa al completarla:** el ciclo llega hasta la cita 10 (9 flores + la cita 10 de
+  premio); la siguiente cita empieza una tarjeta nueva. El número de citas por tarjeta debe ser
+  configurable y se guarda el historial de tarjetas completadas (2026-11-16).
+- [x] **Assets de producción:** plantilla vacía, flor con transparencia y fuente del nombre (ver 5.2).
 - [x] **Canal de envío:** WhatsApp. El bot devuelve la imagen al dueño y este la reenvía desde el iPhone.
 - [x] **Dónde se ejecutará:** alwaysdata (igual que el bot de finanzas).
+- [x] **Zona horaria del negocio:** `America/Mexico_City` (2026-11-16).
 
 ## 5.1 Decisiones de stack (2026-10-25)
 
@@ -114,25 +119,38 @@ Lenguaje: **Python**, pero con herramientas modernas para practicar desarrollo g
 Referencia: `docs/referencia/tarjeta-ejemplo.jpeg` (ejemplo con 6 de 9 casillas marcadas).
 
 - **Formato:** JPEG, 1050 × 600 px.
-- **Casillas:** 9 círculos blancos en cuadrícula 3×3, Ø ≈ 118 px.
-  - Centros aproximados — columnas x ≈ 585, 770, 955; filas y ≈ 120, 301, 483.
+- **Casillas:** 9 círculos blancos (RGB 255,255,255) en cuadrícula 3×3, Ø ≈ 118 px.
+  - Centros medidos — columnas x = 584.0, 769.5, 954.5; filas y = 119.0, 301.0, 483.0.
   - Orden de llenado observado: por filas, de izquierda a derecha y de arriba abajo.
 - **La marca no es una "X":** cada cita se marca con una **flor de lirio rosa** dentro del círculo.
 - **La tarjeta es personalizada:** lleva el **nombre del cliente** en fuente manuscrita sobre la
   línea de la izquierda (en el ejemplo, "Carmen"). El bot debe renderizar también el nombre.
+  - En el ejemplo, nombre + ✨ ocupan x 167–341, y 282–368; la línea va de x 50 a 440, y 378–381.
 - Texto fijo: "Tarjeta de lealtad de:" y "Bienvenida a tu espacio! muchas gracias por tu confianza".
 
 **Assets necesarios para generar tarjetas** (el ejemplo no sirve como plantilla porque ya trae
 nombre y flores):
 
 1. Plantilla **vacía**: fondo con los 9 círculos blancos y sin nombre.
+   ✅ `assets/plantilla-vacia.png` (2026-11-16): generada a partir del ejemplo, rellenando las
+   casillas con blanco y reconstruyendo el degradado bajo el nombre. Conserva el ✨ en su
+   posición original (x 316–348, y 280–317): es parte fija del diseño. Si se consigue el original
+   de Canva, conviene reemplazarla por una exportación directa.
 2. La **flor** como PNG con fondo transparente (o el círculo con flor completo).
+   ✅ `assets/flor.png` (2026-11-16): 115 × 115 RGBA, extraída de la casilla 1 del ejemplo; el
+   blanco se convirtió en transparencia, así que sobre una casilla blanca reproduce el original.
+   El centro del PNG va en el centro de la casilla; en los centros con .5 (x = 769.5, 954.5) se
+   redondea hacia abajo, que es como está en el diseño.
 3. La **fuente** del nombre (archivo `.ttf`/`.otf`) y la usada en el diseño, si es de Canva.
+   ✅ `assets/fuentes/Sacramento-Regular.ttf` (Google Fonts, licencia OFL en `OFL.txt`). El dueño
+   indicó que la fuente exacta no es relevante; tiene todas las letras del español. Tamaño de
+   fuente del nombre: máximo 117 (con él "Carmen" mide 86 px de alto, como en el ejemplo), mínimo
+   36. Los nombres de 19–20 caracteres probados caben con tamaños 37–50.
 
 ## 6. Próximos pasos
 
-1. Responder las preguntas de la sección 5.
-2. Conseguir los assets de producción y mapear las casillas (ver 5.2).
-3. Construir el MVP: `/cita`, `/clientes`, `/deshacer`.
+1. ✅ Responder las preguntas de la sección 5.
+2. ✅ Conseguir los assets de producción y mapear las casillas (ver 5.2).
+3. ✅ Construir el MVP: `/cita`, `/alta`, `/deshacer`, `/tarjeta`, `/clientes` y `/ayuda`.
 4. Desplegar y probar con clientes reales.
 5. (Opcional) Fase 2: tarjeta digital con link por cliente.
