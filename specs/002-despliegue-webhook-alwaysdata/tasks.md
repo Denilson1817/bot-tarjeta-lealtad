@@ -317,7 +317,7 @@ la computadora apagada.
 - [X] T029 [US3] Marcar las tareas hechas en `specs/002-despliegue-webhook-alwaysdata/tasks.md`,
   correr los gates y hacer commit en la rama `002-…`. La integración a `main` es T035, después de
   validar en producción (constitución: "integrada a `main` al terminar").
-- [ ] T030 [US3] Crear el repositorio público en GitHub con el contenido versionado (`README.md`,
+- [X] T030 [US3] Crear el repositorio público en GitHub con el contenido versionado (`README.md`,
   `src/`, `specs/`…) y subir `main` y la rama, según `quickstart.md` §2.1:
   `gh repo create Denilson1817/bot-tarjeta-lealtad --public --source . --remote origin`, luego
   `git push -u origin main` y `git push -u origin 002-despliegue-webhook-alwaysdata`.
