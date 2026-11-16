@@ -1,1 +1,1 @@
-"""Capa de Telegram (aiogram): handlers, seguridad y acciones pendientes."""
+"""Capa de Telegram (python-telegram-bot): handlers, seguridad, acciones y servidor web."""

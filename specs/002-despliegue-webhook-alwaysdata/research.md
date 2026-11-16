@@ -28,6 +28,7 @@ las que se citan de la documentación de alwaysdata.
   | Bot de tarjetas con aiogram (imports + servidor web + tarjeta generada) | ~186–194 MB |
   | Bot de tarjetas con python-telegram-bot + Starlette + uvicorn (misma prueba) | **~96 MB** |
   | Bot de finanzas del dueño (python-telegram-bot + Starlette + uvicorn) | ~77 MB |
+  | **Implementado** (T023): modo webhook con el servidor, 1 alta y 2 tarjetas, sin red | **86 MB** |
 
   Con aiogram, los dos bots juntos (~260 MB) superan los 256 MB de la cuenta. El costo de aiogram
   viene de su `aiogram/types/__init__.py`, que llama `model_rebuild()` en todos los tipos de la API

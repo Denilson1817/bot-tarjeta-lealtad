@@ -47,7 +47,7 @@ description: "Lista de tareas para publicar el bot en alwaysdata (plan Free) con
 
 **Purpose**: cambiar las dependencias y separar las fixtures del dominio de las de Telegram.
 
-- [ ] T001 En `pyproject.toml`:
+- [X] T001 En `pyproject.toml`:
   - quitar `aiogram` de `dependencies`;
   - agregar `"python-telegram-bot>=22.8,<23"`, `"starlette>=1.10,<2"` y `"uvicorn>=0.54,<1"`.
 
@@ -55,13 +55,13 @@ description: "Lista de tareas para publicar el bot en alwaysdata (plan Free) con
   `aiohttp`. A partir de aquí, mypy y las pruebas de `tests/bot/` quedan en rojo hasta terminar la
   Fase 2. Las del dominio (`tests/unit`, salvo `test_arquitectura`, y `tests/integration`) deben
   seguir en verde.
-- [ ] T002 [P] Agregar a `.env.example`, comentadas y con una línea de explicación:
+- [X] T002 [P] Agregar a `.env.example`, comentadas y con una línea de explicación:
   - `WEBHOOK_URL` (solo en el servidor; ejemplo `https://CUENTA.alwaysdata.net/tarjeta/telegram`);
   - `WEBHOOK_SECRET` (solo en el servidor; cómo generarlo);
   - una nota de que alwaysdata entrega `IP` y `PORT`.
 
   Según [contracts/configuracion.md](contracts/configuracion.md).
-- [ ] T003 Mover de `tests/conftest.py` a un nuevo `tests/bot/conftest.py` las fixtures de Telegram
+- [X] T003 Mover de `tests/conftest.py` a un nuevo `tests/bot/conftest.py` las fixtures de Telegram
   (`acciones`, `mensaje_falso`, `callback_falso`, `botones`). En `tests/conftest.py` quedan solo
   las del dominio (`zona`, `utc`, `sesiones`, `servicio`). Las fixtures movidas se reescriben en
   T004.
@@ -79,7 +79,7 @@ python-telegram-bot. Ambos modos dependen de esto.
 
 ### Pruebas (escribir/reescribir primero; deben FALLAR)
 
-- [ ] T004 Reescribir `tests/bot/conftest.py` para python-telegram-bot ([research §9](research.md#9-adaptación-de-la-capa-de-telegram)). Fixtures:
+- [X] T004 Reescribir `tests/bot/conftest.py` para python-telegram-bot ([research §9](research.md#9-adaptación-de-la-capa-de-telegram)). Fixtures:
   - `mensaje_falso(texto, fecha, user_id=1)`: `MagicMock(spec=telegram.Message)` con `text`,
     `date`, `chat_id`, `from_user` y `AsyncMock` en `reply_text`, `reply_photo` y `edit_text`;
   - `update_falso(mensaje)`: `MagicMock` con `update_id`, `message`, `effective_message`,
@@ -95,7 +95,7 @@ python-telegram-bot. Ambos modos dependen de esto.
     - responde `getMe`, `sendMessage`, `sendPhoto` y `editMessageText` con JSON válido;
     - `getWebhookInfo` devuelve `{"url": self.webhook_url}` (configurable, `""` por defecto);
     - cualquier otro método devuelve `true`.
-- [ ] T005 [P] Reescribir `tests/bot/test_acciones.py`:
+- [X] T005 [P] Reescribir `tests/bot/test_acciones.py`:
   - `empaquetar("tok", "nuevo") == "a:tok:nuevo"`;
   - `desempaquetar` hace el viaje de ida y vuelta, y devuelve `None` para `"x"`, `"a:solo"` y
     `"b:t:o"`;
@@ -103,12 +103,12 @@ python-telegram-bot. Ambos modos dependen de esto.
   - `tomar` devuelve la acción una sola vez;
   - los tokens no se repiten en 1 000 registros;
   - se descarta la acción más antigua al pasar de `MAXIMO_PENDIENTES`.
-- [ ] T006 [P] Reescribir `tests/bot/test_seguridad.py` para el filtro del dueño que devuelve
+- [X] T006 [P] Reescribir `tests/bot/test_seguridad.py` para el filtro del dueño que devuelve
   `crear_filtro_dueno(owner_id)`:
   - con el dueño no lanza nada;
   - con otra cuenta lanza `ApplicationHandlerStop` y registra un `WARNING` con el ID y el usuario;
   - un update sin `effective_user` también lanza `ApplicationHandlerStop`.
-- [ ] T007 [P] Portar `tests/bot/test_handlers_cita.py` a las fixtures nuevas con los **mismos
+- [X] T007 [P] Portar `tests/bot/test_handlers_cita.py` a las fixtures nuevas con los **mismos
   escenarios** de la 001:
   - sin argumento → `uso("cita")`;
   - cliente existente → `reply_photo` con el pie exacto;
@@ -120,13 +120,13 @@ python-telegram-bot. Ambos modos dependen de esto.
 
   Los handlers se llaman como `await handlers.cmd_cita(update, contexto)` y
   `await handlers.al_pulsar(update, contexto)`.
-- [ ] T008 [P] Portar `tests/bot/test_handlers_alta.py` con los mismos escenarios, incluido
+- [X] T008 [P] Portar `tests/bot/test_handlers_alta.py` con los mismos escenarios, incluido
   `separar_alta`.
-- [ ] T009 [P] Portar `tests/bot/test_handlers_deshacer.py` con los mismos escenarios, incluido "la
+- [X] T009 [P] Portar `tests/bot/test_handlers_deshacer.py` con los mismos escenarios, incluido "la
   última cita cambió".
-- [ ] T010 [P] Portar `tests/bot/test_handlers_consultas.py` con los mismos escenarios, incluida la
+- [X] T010 [P] Portar `tests/bot/test_handlers_consultas.py` con los mismos escenarios, incluida la
   lista dividida en varios mensajes.
-- [ ] T011 [P] Crear `tests/bot/test_integracion_app.py` y borrar
+- [X] T011 [P] Crear `tests/bot/test_integracion_app.py` y borrar
   `tests/bot/test_integracion_dispatcher.py`. Con
   `crear_aplicacion(servicio, owner_id=5221, token="42:PRUEBA", request=FakeTelegramAPI(), con_updater=False)`
   y `async with aplicacion:`, alimentar `Update.de_json(...)` por `process_update` y comprobar:
@@ -135,22 +135,22 @@ python-telegram-bot. Ambos modos dependen de esto.
   - `/cita Lucía` → botón `Crear` → update de callback → `sendPhoto` con el pie esperado; un
     segundo toque → "ya se aplicó o caducó";
   - `/alta Rosa 6`, `/tarjeta #1`, `/clientes` y `/deshacer rosa` reciben sus argumentos.
-- [ ] T012 [P] Ampliar `tests/unit/test_arquitectura.py`: ningún módulo fuera de `bot/` importa
+- [X] T012 [P] Ampliar `tests/unit/test_arquitectura.py`: ningún módulo fuera de `bot/` importa
   `aiogram`, `telegram`, `starlette` ni `uvicorn`.
 
 ### Implementación
 
-- [ ] T013 [P] Reescribir `src/tarjeta_lealtad/bot/acciones.py` sin aiogram:
+- [X] T013 [P] Reescribir `src/tarjeta_lealtad/bot/acciones.py` sin aiogram:
   - quitar `AccionCB`;
   - agregar `PREFIJO = "a"`, `empaquetar(token, opcion) -> str` y
     `desempaquetar(data) -> tuple[str, str] | None` (formato `"a:<token>:<opción>"`, ≤ 64 bytes,
     [data-model](data-model.md#datos-del-botón));
   - conservar `Accion`, `AccionesPendientes` y sus tipos.
-- [ ] T014 [P] Reescribir `src/tarjeta_lealtad/bot/seguridad.py`: `crear_filtro_dueno(owner_id)`
+- [X] T014 [P] Reescribir `src/tarjeta_lealtad/bot/seguridad.py`: `crear_filtro_dueno(owner_id)`
   devuelve un callback asíncrono `(update, context)` que, si el remitente no es el dueño, registra
   un `WARNING` (ID y usuario) y lanza `ApplicationHandlerStop`. Se registra como
   `TypeHandler(Update, ...)` en el grupo `-1`.
-- [ ] T015 Portar `src/tarjeta_lealtad/bot/handlers.py` a python-telegram-bot, después de T013 y
+- [X] T015 Portar `src/tarjeta_lealtad/bot/handlers.py` a python-telegram-bot, después de T013 y
   T014, conservando los mismos flujos y textos:
   - **Firma y datos**: los callbacks son `(update, context)`. `servicio` y `acciones` salen de
     `context.bot_data`; el mensaje, de `update.effective_message`; el texto del comando, de
@@ -169,7 +169,7 @@ python-telegram-bot. Ambos modos dependen de esto.
     3. `MessageHandler(filters.ALL, sin_comando)`, el último;
     4. el error handler.
   - Actualizar el docstring de `src/tarjeta_lealtad/bot/__init__.py`.
-- [ ] T016 Reescribir `src/tarjeta_lealtad/bot/app.py`, después de T015:
+- [X] T016 Reescribir `src/tarjeta_lealtad/bot/app.py`, después de T015:
   - `crear_aplicacion(servicio, owner_id, token, *, request=None, con_updater=True) -> Application`:
     - `ApplicationBuilder` con `request`/`get_updates_request`, si se pasan, y `.updater(None)` si
       `con_updater` es falso;
@@ -180,7 +180,7 @@ python-telegram-bot. Ambos modos dependen de esto.
   - `main()` conserva configuración, `verificar_diseno`, assets y base, y por ahora siempre usa
     polling: `run_polling(drop_pending_updates=False, allowed_updates=["message", "callback_query"])`,
     con un `post_init` que registra los comandos y anota "modo polling".
-- [ ] T017 Correr los gates de `pyproject.toml` (`uv run ruff check`, `uv run ruff format --check`,
+- [X] T017 Correr los gates de `pyproject.toml` (`uv run ruff check`, `uv run ruff format --check`,
   `uv run mypy`, `uv run pytest`) y dejarlos en verde. Probar a mano el bot de pruebas con
   `uv run python -m tarjeta_lealtad` (código en `src/tarjeta_lealtad/bot/`): `/ayuda`, `/cita` con
   su botón y `/deshacer` se comportan como en la 001.
@@ -205,14 +205,14 @@ la computadora apagada.
 
 ### Tests for User Story 1 ⚠️ (escribir primero; deben FALLAR)
 
-- [ ] T018 [P] [US1] Ampliar `tests/unit/test_config.py`:
+- [X] T018 [P] [US1] Ampliar `tests/unit/test_config.py`:
   - sin `WEBHOOK_URL` → `modo == "polling"`;
   - con `WEBHOOK_URL=https://…` y un `WEBHOOK_SECRET` válido → `modo == "webhook"`;
   - `WEBHOOK_URL=http://…` → `ValidationError` con "https://";
   - con URL pero sin secreto, o con un secreto de 15 caracteres o con caracteres fuera de
     `[A-Za-z0-9_-]` → `ValidationError` que menciona `secrets.token_urlsafe`;
   - `IP`/`PORT` por defecto `127.0.0.1`/`8000`, y se leen de las variables `IP` y `PORT`.
-- [ ] T019 [P] [US1] Crear `tests/bot/test_web.py`:
+- [X] T019 [P] [US1] Crear `tests/bot/test_web.py`:
   - **Registro de updates** (`RegistroDeUpdates`): `registrar(5)` es verdadero la primera vez y
     falso la segunda; al pasar de la capacidad, el más antiguo se olvida.
   - **Arranque** (`TestClient` como contexto, con `crear_app_web(aplicacion, webhook_url,
@@ -232,13 +232,13 @@ la computadora apagada.
 
 ### Implementation for User Story 1
 
-- [ ] T020 [US1] En `src/tarjeta_lealtad/config.py`:
+- [X] T020 [US1] En `src/tarjeta_lealtad/config.py`:
   - agregar `webhook_url: str | None = None`, `webhook_secret: SecretStr | None = None`,
     `ip: str = "127.0.0.1"` y `port: int = 8000`;
   - un validador que, con URL, exija `https://` y un secreto con `^[A-Za-z0-9_-]{16,256}$`, con los
     mensajes de [contracts/configuracion.md](contracts/configuracion.md);
   - la propiedad `modo` (`"polling"` o `"webhook"`).
-- [ ] T021 [US1] Crear `src/tarjeta_lealtad/bot/web.py`, después de T020, según
+- [X] T021 [US1] Crear `src/tarjeta_lealtad/bot/web.py`, después de T020, según
   [contracts/webhook-http.md](contracts/webhook-http.md):
   - `RegistroDeUpdates(capacidad=1000)` con `registrar(update_id) -> bool`;
   - `crear_app_web(application, webhook_url, webhook_secret) -> Starlette`:
@@ -250,15 +250,15 @@ la computadora apagada.
       - si el `update_id` ya se procesó, responde 200 sin procesar;
       - si no, `async with lock: await application.process_update(update)` y responde 200.
     - **GET `/{ruta:path}`**: `PlainTextResponse("ok")`.
-- [ ] T022 [US1] En `src/tarjeta_lealtad/bot/app.py`, `main()` elige el modo con `ajustes.modo`:
+- [X] T022 [US1] En `src/tarjeta_lealtad/bot/app.py`, `main()` elige el modo con `ajustes.modo`:
   - **webhook**: `crear_aplicacion(..., con_updater=False)`, `crear_app_web(...)` y
     `uvicorn.run(app_web, host=ajustes.ip, port=ajustes.port, access_log=False)`;
   - en el log: "modo webhook en IP:PORT".
-- [ ] T023 [US1] Medir la memoria (FR-015) de `src/tarjeta_lealtad/bot/web.py` con el procedimiento
+- [X] T023 [US1] Medir la memoria (FR-015) de `src/tarjeta_lealtad/bot/web.py` con el procedimiento
   de `quickstart.md` §1: un script temporal en el scratchpad con `FakeTelegramAPI`; **nunca** se
   arranca el modo webhook en local. Debe quedar < 120 MB. Anotar la cifra en
   `specs/002-despliegue-webhook-alwaysdata/research.md` §2.
-- [ ] T024 [US1] Correr los gates de `pyproject.toml` y dejarlos en verde.
+- [X] T024 [US1] Correr los gates de `pyproject.toml` y dejarlos en verde.
 
 **Checkpoint**: el modo webhook está listo y probado sin red.
 
@@ -273,7 +273,7 @@ la computadora apagada.
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T025 [P] [US2] Crear `tests/bot/test_app.py`:
+- [X] T025 [P] [US2] Crear `tests/bot/test_app.py`:
   - `verificar_sin_webhook(aplicacion)` con `FakeTelegramAPI(webhook_url="https://x")` → `SystemExit(1)`,
     un `ERROR` con "ya corre en el servidor" y **ninguna** llamada `deleteWebhook`;
   - con `webhook_url=""` → no lanza;
@@ -284,13 +284,13 @@ la computadora apagada.
 
 ### Implementation for User Story 2
 
-- [ ] T026 [US2] En `src/tarjeta_lealtad/bot/app.py`:
+- [X] T026 [US2] En `src/tarjeta_lealtad/bot/app.py`:
   - agregar `async def verificar_sin_webhook(application)`, que usa `get_webhook_info()`; si hay URL,
     registra el mensaje de [contracts/configuracion.md](contracts/configuracion.md) y hace
     `sys.exit(1)`;
   - encadenarla en el `post_init` de polling **antes** de registrar los comandos, para que corra
     antes de que python-telegram-bot llame `delete_webhook`.
-- [ ] T027 [US2] Comprobar, con el resguardo de `src/tarjeta_lealtad/bot/app.py`, que el polling con
+- [X] T027 [US2] Comprobar, con el resguardo de `src/tarjeta_lealtad/bot/app.py`, que el polling con
   el bot de pruebas sigue funcionando, y correr los gates.
 
 **Checkpoint**: en la computadora es imposible quitarle el webhook al bot de producción por error.
@@ -304,7 +304,7 @@ la computadora apagada.
 **Independent Test**: seguir el README en la cuenta de alwaysdata y obtener `ok` y `/ayuda`
 ([quickstart §2.4](quickstart.md#24-comprobación)).
 
-- [ ] T028 [US3] Crear `README.md` a partir de `quickstart.md`, para el dueño, sin tokens, ID ni el
+- [X] T028 [US3] Crear `README.md` a partir de `quickstart.md`, para el dueño, sin tokens, ID ni el
   nombre real de la cuenta. Secciones:
   1. qué hace el bot;
   2. uso en la computadora: instalación, `.env`, ejecución y gates;
@@ -314,7 +314,7 @@ la computadora apagada.
      alwaysdata (§4).
 
   Cubre FR-018 – FR-020.
-- [ ] T029 [US3] Marcar las tareas hechas en `specs/002-despliegue-webhook-alwaysdata/tasks.md`,
+- [X] T029 [US3] Marcar las tareas hechas en `specs/002-despliegue-webhook-alwaysdata/tasks.md`,
   correr los gates y hacer commit en la rama `002-…`. La integración a `main` es T035, después de
   validar en producción (constitución: "integrada a `main` al terminar").
 - [ ] T030 [US3] Crear el repositorio público en GitHub con el contenido versionado (`README.md`,

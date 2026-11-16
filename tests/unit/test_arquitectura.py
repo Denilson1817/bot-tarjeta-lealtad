@@ -1,4 +1,4 @@
-"""Principio II: el dominio no depende de Telegram."""
+"""Principio II: el dominio no depende de Telegram ni del servidor web."""
 
 import ast
 from pathlib import Path
@@ -19,12 +19,15 @@ def modulos_importados(archivo: Path) -> set[str]:
     return nombres
 
 
-def test_el_dominio_no_importa_aiogram() -> None:
+PROHIBIDOS = {"aiogram", "telegram", "starlette", "uvicorn"}
+
+
+def test_el_dominio_no_importa_librerias_de_telegram_ni_web() -> None:
     dominio = [p for p in PAQUETE.rglob("*.py") if "bot" not in p.relative_to(PAQUETE).parts]
     assert dominio, "no se encontraron módulos de dominio"
     infractores = {
         str(p.relative_to(PAQUETE)): sorted(
-            m for m in modulos_importados(p) if m.split(".")[0] == "aiogram"
+            m for m in modulos_importados(p) if m.split(".")[0] in PROHIBIDOS
         )
         for p in dominio
     }
