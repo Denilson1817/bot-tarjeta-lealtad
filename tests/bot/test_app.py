@@ -1,5 +1,6 @@
 """Arranque: resguardo del polling (FR-013) y selección de modo por configuración (FR-001)."""
 
+import inspect
 import logging
 from collections.abc import Callable
 from pathlib import Path
@@ -18,7 +19,7 @@ async def test_con_webhook_activo_no_arranca_ni_lo_borra(
     servicio: Any, api_falsa: Callable[..., Any], caplog: pytest.LogCaptureFixture
 ) -> None:
     api = api_falsa(webhook_url=URL_PRODUCCION)
-    aplicacion = crear_aplicacion(servicio, 1, "42:PRUEBA", request=api)
+    aplicacion = crear_aplicacion(servicio, frozenset({1}), "42:PRUEBA", request=api)
     async with aplicacion:
         with caplog.at_level(logging.ERROR), pytest.raises(SystemExit) as salida:
             await verificar_sin_webhook(aplicacion)
@@ -29,7 +30,7 @@ async def test_con_webhook_activo_no_arranca_ni_lo_borra(
 
 async def test_sin_webhook_activo_continua(servicio: Any, api_falsa: Callable[..., Any]) -> None:
     api = api_falsa()
-    aplicacion = crear_aplicacion(servicio, 1, "42:PRUEBA", request=api)
+    aplicacion = crear_aplicacion(servicio, frozenset({1}), "42:PRUEBA", request=api)
     async with aplicacion:
         await verificar_sin_webhook(aplicacion)
     assert "getWebhookInfo" in api.metodos()
@@ -39,7 +40,7 @@ async def test_al_iniciar_el_polling_verifica_antes_de_registrar_comandos(
     servicio: Any, api_falsa: Callable[..., Any]
 ) -> None:
     api = api_falsa(webhook_url=URL_PRODUCCION)
-    aplicacion = crear_aplicacion(servicio, 1, "42:PRUEBA", request=api)
+    aplicacion = crear_aplicacion(servicio, frozenset({1}), "42:PRUEBA", request=api)
     async with aplicacion:
         with pytest.raises(SystemExit):
             await modulo_app.al_iniciar_polling(aplicacion)
@@ -57,7 +58,14 @@ def arranques(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> dict[str, Any]
         "DB_PATH": str(tmp_path / "t.db"),
     }.items():
         monkeypatch.setenv(clave, valor)
-    for clave in ("WEBHOOK_URL", "WEBHOOK_SECRET", "IP", "PORT", "CITAS_POR_TARJETA"):
+    for clave in (
+        "WEBHOOK_URL",
+        "WEBHOOK_SECRET",
+        "IP",
+        "PORT",
+        "CITAS_POR_TARJETA",
+        "AUTORIZADOS",
+    ):
         monkeypatch.delenv(clave, raising=False)
     registro: dict[str, Any] = {}
 
@@ -89,3 +97,32 @@ def test_con_webhook_url_arranca_el_servidor_web(
     modulo_app.main()
     assert (arranques["uvicorn"]["host"], arranques["uvicorn"]["port"]) == ("::", 8123)
     assert "polling" not in arranques
+
+
+@pytest.mark.parametrize("webhook", [False, True])
+def test_main_usa_las_personas_autorizadas(
+    arranques: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    webhook: bool,
+) -> None:
+    monkeypatch.setenv("OWNER_ID", "42")
+    monkeypatch.setenv("AUTORIZADOS", "7")
+    if webhook:
+        monkeypatch.setenv("WEBHOOK_URL", URL_PRODUCCION)
+        monkeypatch.setenv("WEBHOOK_SECRET", "s3cr3t0-de_prueba-0123456789abcdef")
+    original = modulo_app.crear_aplicacion
+    firma = inspect.signature(original)
+    recibidos: list[Any] = []
+
+    def registrar(*args: Any, **kwargs: Any) -> Any:
+        recibidos.append(firma.bind(*args, **kwargs).arguments["autorizados"])
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(modulo_app, "crear_aplicacion", registrar)
+    # basicConfig(force=True) quitaría el handler de caplog.
+    monkeypatch.setattr(modulo_app, "_configurar_logs", lambda nivel="INFO": None)
+    with caplog.at_level(logging.INFO, logger="tarjeta_lealtad"):
+        modulo_app.main()
+    assert recibidos == [frozenset({42, 7})]
+    assert "Personas autorizadas: 2" in caplog.messages  # cuántas, nunca los IDs

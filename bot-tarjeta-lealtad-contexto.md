@@ -157,6 +157,21 @@ nombre y flores):
    fuente del nombre: máximo 117 (con él "Carmen" mide 86 px de alto, como en el ejemplo), mínimo
    36. Los nombres de 19–20 caracteres probados caben con tamaños 37–50.
 
+## 5.3 Personas autorizadas (2026-11-16)
+
+El dueño decidió que otra persona use el bot con **todos los permisos** (todos los comandos y
+botones, sobre los mismos clientes), también dentro de un grupo de Telegram donde las tarjetas y
+la lista de clientes quedan visibles para todos sus miembros (constitución v4.0.0).
+
+- Se configura con `AUTORIZADOS` en el `.env` (IDs separados por comas); el dueño siempre está
+  autorizado. El README explica cómo obtener el ID de una persona.
+- En un grupo, el bot solo responde a sus comandos y botones.
+- El log anota quién registró, dio de alta o deshizo cada cita, y todo lo que envían las cuentas
+  no autorizadas.
+- Estado: feature `003-usuarios-autorizados` implementada, con las pruebas en verde. Falta
+  publicarla después de integrar la feature 002 y validarla en producción
+  (`specs/003-usuarios-autorizados/quickstart.md`).
+
 ## 6. Próximos pasos
 
 1. ✅ Responder las preguntas de la sección 5.

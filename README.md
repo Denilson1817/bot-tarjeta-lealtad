@@ -1,7 +1,8 @@
 # Bot de tarjeta de lealtad
 
-Bot de Telegram de un solo usuario (el dueño del negocio) que registra las citas de cada cliente
-y devuelve su **tarjeta de lealtad** como foto, lista para reenviarla por WhatsApp. La tarjeta se
+Bot de Telegram para el dueño del negocio y las personas que el dueño autorice, que registra las
+citas de cada cliente y devuelve su **tarjeta de lealtad** como foto, lista para reenviarla por
+WhatsApp. La tarjeta se
 genera desde los datos guardados: la plantilla, el nombre del cliente y una flor por cita.
 Al llegar a la cita 10, que es la de premio, empieza una tarjeta nueva.
 
@@ -16,7 +17,47 @@ Al llegar a la cita 10, que es la de premio, empieza una tarjeta nueva.
 | `/clientes` | Lista de clientes con su avance | `/clientes` |
 | `/ayuda` | Muestra la ayuda | `/ayuda` |
 
-El bot solo responde a la cuenta de Telegram del dueño; cualquier otra se ignora.
+El bot solo responde a las personas autorizadas; cualquier otra cuenta se ignora.
+
+## Personas autorizadas
+
+El dueño (`OWNER_ID`) siempre puede usar el bot. Para que otra persona lo use, con los mismos
+permisos y sobre los mismos clientes, agrega su ID de Telegram en `AUTORIZADOS`.
+
+1. **Obtén su ID.** Pídele que escriba `/ayuda` al bot **en privado** (no en un grupo). No
+   recibirá respuesta, pero el log anota su ID:
+
+   ```text
+   Mensaje ignorado de una cuenta no autorizada: id=222222222 usuario=nombre chat=privado
+   ```
+
+   En tu computadora, la línea aparece en la terminal. En alwaysdata:
+
+   ```bash
+   grep -rh "cuenta no autorizada" ~/admin/logs/sites/ | tail -3
+   ```
+
+2. **Autorízala.** Agrega su ID en el `.env` (si son varias personas, sepáralas con comas):
+
+   ```bash
+   AUTORIZADOS=222222222
+   ```
+
+   Reinicia el bot: en tu computadora, Ctrl+C y vuelve a arrancarlo; en alwaysdata, reinicia el
+   sitio en **Web > Sites**. Al arrancar, el log dice `Personas autorizadas: 2` (cuenta al
+   dueño). Si un ID está mal escrito, el bot no arranca y el log dice cuál es.
+3. **Para quitarla**, borra su ID de `AUTORIZADOS` y reinicia.
+
+**En un grupo.** Agrega el bot al grupo. Los comandos se escriben igual que en privado o con el
+nombre del bot (`/cita@NombreDelBot Carmen`), y el bot responde en el grupo. No responde a la
+conversación normal ni a los miembros no autorizados (sus mensajes quedan en el log).
+
+- Las tarjetas y la lista de clientes quedan **visibles para todos los miembros**: agrega el bot
+  solo a grupos cuyos miembros puedan verlas.
+- Si un administrador tiene activado **«Permanecer anónimo»**, Telegram oculta su cuenta y el bot
+  no lo reconoce (en el log aparece `usuario=GroupAnonymousBot`): desactívalo en sus permisos de
+  administrador. **Nunca** agregues a `AUTORIZADOS` el ID de `GroupAnonymousBot`: es una cuenta
+  compartida y daría acceso a cualquier administrador anónimo.
 
 ## Uso en tu computadora
 
@@ -73,6 +114,7 @@ nano .env
 En `.env`:
 - `BOT_TOKEN`: el token del bot de **producción**;
 - `OWNER_ID` y `ZONA_HORARIA=America/Mexico_City`;
+- `AUTORIZADOS`, si otras personas usarán el bot (ver «Personas autorizadas»);
 - `DB_PATH=/home/CUENTA/bot-tarjeta-lealtad/data/lealtad.db`;
 - `WEBHOOK_URL=https://CUENTA.alwaysdata.net/tarjeta/telegram`;
 - el `WEBHOOK_SECRET` que generó el comando `echo`.
@@ -98,7 +140,7 @@ En **Web > Sites > Add a site**:
 | `curl -s -o /dev/null -w '%{http_code}\n' -X POST https://CUENTA.alwaysdata.net/tarjeta/telegram` | `403`: sin el token secreto no entra nada |
 | `/ayuda` al bot de producción desde el iPhone | Responde la ayuda |
 | Si tienes otros bots en la cuenta, escribirles | Responden como siempre |
-| En el servidor: `ls ~/admin/logs/sites/` y revisar el log del sitio | "Modo webhook", "Webhook registrado", sin errores |
+| En el servidor: `ls ~/admin/logs/sites/` y revisar el log del sitio | "Personas autorizadas: N", "Modo webhook", "Webhook registrado", sin errores |
 
 ## Mantenimiento
 

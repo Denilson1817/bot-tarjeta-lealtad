@@ -1,6 +1,9 @@
+import logging
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any
+
+import pytest
 
 from tarjeta_lealtad.bot import handlers, textos
 from tarjeta_lealtad.servicio import Encontrado, SinCoincidencias
@@ -204,3 +207,41 @@ async def test_id_inexistente(mensaje_falso: Any, servicio: Any, tg: Any) -> Non
     mensaje = mensaje_falso("/cita #999")
     await tg.comando(handlers.cmd_cita, mensaje, "#999")
     mensaje.reply_text.assert_awaited_once_with("No existe el cliente #999.")
+
+
+# --- Quién hizo cada acción (feature 003, FR-010) ----------------------------------------------
+
+
+async def test_la_cita_anota_quien_la_registro(
+    mensaje_falso: Any, servicio: Any, tg: Any, utc: Utc, caplog: pytest.LogCaptureFixture
+) -> None:
+    carmen = servicio.crear_cliente("Carmen", 0, utc("2026-11-01 16:00"))
+    mensaje = mensaje_falso("/cita Carmen", user_id=7)
+    with caplog.at_level(logging.INFO):
+        await tg.comando(handlers.cmd_cita, mensaje, "Carmen")
+    assert f"Cita registrada: cliente={carmen.id} premio=False usuario=7" in caplog.messages
+
+
+async def test_cuenta_quien_pulsa_crear_y_no_quien_lo_pidio(
+    mensaje_falso: Any, servicio: Any, tg: Any, caplog: pytest.LogCaptureFixture
+) -> None:
+    mensaje = mensaje_falso("/cita Lucía", user_id=1)
+    await tg.comando(handlers.cmd_cita, mensaje, "Lucía")
+    with caplog.at_level(logging.INFO):
+        await tg.pulsar(mensaje_falso(), tg.boton(mensaje.reply_text, "Crear"), de=7)
+    lucia = servicio.buscar("lucia")
+    assert isinstance(lucia, Encontrado)
+    assert f"Alta: cliente={lucia.cliente.id} previas=0 usuario=7" in caplog.messages
+    assert f"Cita registrada: cliente={lucia.cliente.id} premio=False usuario=7" in caplog.messages
+
+
+async def test_mismo_dia_confirmado_por_otra_persona(
+    mensaje_falso: Any, servicio: Any, tg: Any, utc: Utc, caplog: pytest.LogCaptureFixture
+) -> None:
+    carmen = servicio.crear_cliente("Carmen", 0, utc("2026-11-16 15:00"))
+    servicio.registrar_cita(carmen.id, utc("2026-11-16 16:00"))
+    mensaje = mensaje_falso("/cita Carmen", fecha=utc("2026-11-16 16:32"))
+    await tg.comando(handlers.cmd_cita, mensaje, "Carmen")
+    with caplog.at_level(logging.INFO):
+        await tg.pulsar(mensaje_falso(), tg.boton(mensaje.reply_text, "Sí"), de=7)
+    assert f"Cita registrada: cliente={carmen.id} premio=False usuario=7" in caplog.messages

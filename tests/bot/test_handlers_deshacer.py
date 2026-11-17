@@ -1,6 +1,9 @@
+import logging
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any
+
+import pytest
 
 from tarjeta_lealtad.bot import handlers, textos
 
@@ -129,3 +132,17 @@ async def test_sin_argumento_muestra_el_uso(mensaje_falso: Any, servicio: Any, t
     mensaje = mensaje_falso("/deshacer")
     await tg.comando(handlers.cmd_deshacer, mensaje, None)
     mensaje.reply_text.assert_awaited_once_with(textos.uso("deshacer"))
+
+
+# --- Quién hizo cada acción (feature 003, FR-010) ----------------------------------------------
+
+
+async def test_la_anulacion_anota_quien_la_confirmo(
+    mensaje_falso: Any, servicio: Any, tg: Any, utc: Utc, caplog: pytest.LogCaptureFixture
+) -> None:
+    cliente_id = carmen_con_premio(servicio, utc)
+    mensaje = mensaje_falso("/deshacer Carmen")
+    await tg.comando(handlers.cmd_deshacer, mensaje, "Carmen")
+    with caplog.at_level(logging.INFO):
+        await tg.pulsar(mensaje_falso(), tg.botones(mensaje.reply_text)[0][1], de=7)
+    assert f"Cita anulada: cliente={cliente_id} premio=True usuario=7" in caplog.messages

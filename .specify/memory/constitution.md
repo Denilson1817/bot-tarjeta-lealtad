@@ -1,13 +1,14 @@
 # Bot Tarjeta de Lealtad Constitution
 
-Bot de Telegram de un solo usuario (el dueño del negocio) que registra las citas de cada
-cliente y genera su tarjeta de lealtad (plantilla + nombre + N marcas) para reenviarla por WhatsApp.
+Bot de Telegram para el dueño del negocio y las personas que el dueño autorice, que registra las
+citas de cada cliente y genera su tarjeta de lealtad (plantilla + nombre + N marcas) para
+reenviarla por WhatsApp.
 
 ## Core Principles
 
 ### I. Simplicidad primero (YAGNI)
 
-- El sistema es un único proceso Python que atiende a un único usuario.
+- El sistema es un único proceso Python que atiende a un grupo pequeño de usuarios autorizados.
 - NO se introducen microservicios, colas, caches, APIs propias ni capas de abstracción
   sin una necesidad presente y documentada en el plan.
 - Toda complejidad añadida DEBE justificarse en la tabla "Complexity Tracking" del plan.
@@ -49,11 +50,14 @@ del bot, y cambiar de librería de Telegram sin tocar el dominio.
 
 ### V. Seguridad básica
 
-- El bot DEBE responder únicamente al ID de Telegram del dueño; cualquier otro usuario se
-  ignora (y se registra en el log).
-- Los secretos (token del bot, ID del dueño) se cargan desde `.env` mediante
+- El bot DEBE responder únicamente a las cuentas de Telegram autorizadas: la del dueño y las
+  que el dueño agregue en la configuración. Cualquier otra cuenta se ignora, también dentro de
+  grupos, y se registra en el log.
+- Los secretos (token del bot, IDs autorizados) se cargan desde `.env` mediante
   `pydantic-settings` y NUNCA se versionan en el repositorio.
 - La base de datos y las imágenes generadas no se suben al repositorio.
+- En un grupo, las tarjetas y las listas quedan visibles para todos sus miembros: el bot solo se
+  agrega a grupos cuyos miembros puedan verlas.
 
 **Razón:** contiene datos de clientes y un token con control total del bot.
 
@@ -64,7 +68,7 @@ del bot, y cambiar de librería de Telegram sin tocar el dominio.
   (sin dominio propio). No se usan *Services*: el plan Free no los admite.
 - El servidor web DEBE escuchar en la IP y el puerto que alwaysdata entrega en `$IP` y `$PORT`.
 - Cada petición del webhook DEBE validarse con el *secret token* de Telegram, además del filtro
-  del dueño (principio V).
+  de personas autorizadas (principio V).
 - En desarrollo local se usa long polling con un bot de pruebas. El modo se elige por
   configuración (definir `WEBHOOK_URL` activa el webhook), sin cambiar código; ambos modos
   comparten handlers, dominio y persistencia.
@@ -123,4 +127,4 @@ Añadir una dependencia nueva DEBE justificarse en el plan de la feature corresp
 - Revisión de cumplimiento: al cerrar cada feature se confirma que los gates de calidad y
   los principios II–V se respetaron.
 
-**Version**: 3.0.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-11-16
+**Version**: 4.0.1 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-11-16

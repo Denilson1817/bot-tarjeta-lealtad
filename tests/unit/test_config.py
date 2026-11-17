@@ -16,6 +16,7 @@ VARIABLES = (
     "WEBHOOK_SECRET",
     "IP",
     "PORT",
+    "AUTORIZADOS",
 )
 SECRETO = "s3cr3t0-de_prueba-0123456789abcdef"
 
@@ -122,3 +123,42 @@ def test_ip_y_puerto(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PORT", "8100")
     ajustes = Ajustes(_env_file=None)
     assert (ajustes.ip, ajustes.port) == ("::1", 8100)
+
+
+# --- Personas autorizadas (feature 003) --------------------------------------------------------
+
+
+def test_sin_autorizados_solo_el_dueno(monkeypatch: pytest.MonkeyPatch) -> None:
+    definir(monkeypatch)
+    ajustes = Ajustes(_env_file=None)
+    assert ajustes.autorizados == frozenset()
+    assert ajustes.ids_autorizados == {42}
+
+
+@pytest.mark.parametrize(
+    ("valor", "esperados"),
+    [
+        ("", set()),
+        ("111", {111}),
+        (" 111, 222,111 ", {111, 222}),
+        ("111,", {111}),
+    ],
+)
+def test_autorizados_separados_por_comas(
+    monkeypatch: pytest.MonkeyPatch, valor: str, esperados: set[int]
+) -> None:
+    definir(monkeypatch, AUTORIZADOS=valor)
+    ajustes = Ajustes(_env_file=None)
+    assert ajustes.autorizados == esperados
+    assert ajustes.ids_autorizados == esperados | {42}
+
+
+def test_el_dueno_repetido_cuenta_una_vez(monkeypatch: pytest.MonkeyPatch) -> None:
+    definir(monkeypatch, AUTORIZADOS="42,111")
+    assert Ajustes(_env_file=None).ids_autorizados == {42, 111}
+
+
+def test_autorizado_invalido(monkeypatch: pytest.MonkeyPatch) -> None:
+    definir(monkeypatch, AUTORIZADOS="111,abc")
+    with pytest.raises(ValidationError, match=r"separados por comas; valor inválido: 'abc'"):
+        Ajustes(_env_file=None)
