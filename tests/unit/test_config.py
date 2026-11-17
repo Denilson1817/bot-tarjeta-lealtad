@@ -5,7 +5,19 @@ from pydantic import ValidationError
 
 from tarjeta_lealtad.config import Ajustes, verificar_diseno
 
-VARIABLES = ("BOT_TOKEN", "OWNER_ID", "ZONA_HORARIA", "CITAS_POR_TARJETA", "DB_PATH", "LOG_LEVEL")
+VARIABLES = (
+    "BOT_TOKEN",
+    "OWNER_ID",
+    "ZONA_HORARIA",
+    "CITAS_POR_TARJETA",
+    "DB_PATH",
+    "LOG_LEVEL",
+    "WEBHOOK_URL",
+    "WEBHOOK_SECRET",
+    "IP",
+    "PORT",
+)
+SECRETO = "s3cr3t0-de_prueba-0123456789abcdef"
 
 
 @pytest.fixture(autouse=True)
@@ -58,3 +70,55 @@ def test_diseno_coherente_con_10_citas() -> None:
 def test_diseno_incoherente_con_8_citas() -> None:
     with pytest.raises(ValueError, match=r"9 casillas.*7"):
         verificar_diseno(8)
+
+
+# --- Modo webhook (feature 002) ----------------------------------------------------------------
+
+
+def test_sin_webhook_url_el_modo_es_polling(monkeypatch: pytest.MonkeyPatch) -> None:
+    definir(monkeypatch)
+    ajustes = Ajustes(_env_file=None)
+    assert ajustes.modo == "polling"
+    assert ajustes.webhook_url is None
+
+
+def test_con_webhook_url_y_secreto_el_modo_es_webhook(monkeypatch: pytest.MonkeyPatch) -> None:
+    definir(
+        monkeypatch,
+        WEBHOOK_URL="https://cuenta.alwaysdata.net/tarjeta/telegram",
+        WEBHOOK_SECRET=SECRETO,
+    )
+    ajustes = Ajustes(_env_file=None)
+    assert ajustes.modo == "webhook"
+    assert ajustes.webhook_secret is not None
+    assert ajustes.webhook_secret.get_secret_value() == SECRETO
+
+
+def test_webhook_url_debe_ser_https(monkeypatch: pytest.MonkeyPatch) -> None:
+    definir(monkeypatch, WEBHOOK_URL="http://cuenta.alwaysdata.net/x", WEBHOOK_SECRET=SECRETO)
+    with pytest.raises(ValidationError, match="https://"):
+        Ajustes(_env_file=None)
+
+
+@pytest.mark.parametrize(
+    "secreto",
+    [None, "corto-15-caract", "con espacios no vale nada", "con/barra/0123456789"],
+)
+def test_secreto_obligatorio_y_con_formato(
+    monkeypatch: pytest.MonkeyPatch, secreto: str | None
+) -> None:
+    definir(monkeypatch, WEBHOOK_URL="https://cuenta.alwaysdata.net/tarjeta/telegram")
+    if secreto is not None:
+        monkeypatch.setenv("WEBHOOK_SECRET", secreto)
+    with pytest.raises(ValidationError, match=r"secrets\.token_urlsafe"):
+        Ajustes(_env_file=None)
+
+
+def test_ip_y_puerto(monkeypatch: pytest.MonkeyPatch) -> None:
+    definir(monkeypatch)
+    ajustes = Ajustes(_env_file=None)
+    assert (ajustes.ip, ajustes.port) == ("127.0.0.1", 8000)
+    monkeypatch.setenv("IP", "::1")
+    monkeypatch.setenv("PORT", "8100")
+    ajustes = Ajustes(_env_file=None)
+    assert (ajustes.ip, ajustes.port) == ("::1", 8100)

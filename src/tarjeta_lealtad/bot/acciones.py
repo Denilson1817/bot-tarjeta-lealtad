@@ -1,6 +1,6 @@
-"""Acciones pendientes detrás de los botones (research §5).
+"""Acciones pendientes detrás de los botones (research §5 de la feature 001).
 
-Un botón solo lleva un token corto: los datos de un botón de Telegram admiten 64 bytes como
+Un botón solo lleva `"a:<token>:<opción>"`: los datos de un botón de Telegram admiten 64 bytes como
 máximo. La acción se *toma* (pop) al pulsarlo, así que un segundo toque no tiene efecto (FR-011).
 Se guarda en memoria: si el bot se reinicia, los botones antiguos solo caducan.
 """
@@ -10,14 +10,13 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal
 
-from aiogram.filters.callback_data import CallbackData
-
 type Comando = Literal["cita", "alta", "deshacer", "tarjeta"]
 type TipoAccion = Literal[
     "elegir", "crear_y_cita", "confirmar_mismo_dia", "crear_homonimo", "confirmar_deshacer"
 ]
 
 MAXIMO_PENDIENTES = 500
+PREFIJO = "a"
 
 
 @dataclass(frozen=True)
@@ -48,6 +47,14 @@ class AccionesPendientes:
         return self._pendientes.pop(token, None)
 
 
-class AccionCB(CallbackData, prefix="a"):
-    token: str
-    opcion: str  # un ID de cliente, "nuevo", "si" o "no"
+def empaquetar(token: str, opcion: str) -> str:
+    """Datos del botón: `opcion` es un ID de cliente, "nuevo", "si" o "no"."""
+    return f"{PREFIJO}:{token}:{opcion}"
+
+
+def desempaquetar(data: str) -> tuple[str, str] | None:
+    """(token, opción) o None si los datos no tienen el formato de este bot."""
+    partes = data.split(":")
+    if len(partes) != 3 or partes[0] != PREFIJO or not partes[1] or not partes[2]:
+        return None
+    return partes[1], partes[2]

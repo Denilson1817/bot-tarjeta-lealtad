@@ -4,10 +4,12 @@ version = "0.1.0"
 description = "Bot de Telegram que registra citas y genera la tarjeta de lealtad de cada cliente"
 requires-python = ">=3.12"
 dependencies = [
-    "aiogram>=3.32,<4",
     "pillow>=13,<14",
     "pydantic-settings>=2.16,<3",
+    "python-telegram-bot>=22.8,<23",
     "sqlalchemy>=2.0,<3",
+    "starlette>=1.10,<2",
+    "uvicorn>=0.54,<1",
 ]
 
 [dependency-groups]
