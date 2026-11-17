@@ -1,8 +1,8 @@
 # Bot Tarjeta de Lealtad — Contexto del proyecto
 
-> Estado: **MVP implementado** en la rama `001-registro-citas-tarjeta` (2026-11-16): 166 pruebas en
-> verde. Falta validarlo desde el iPhone (`specs/001-registro-citas-tarjeta/quickstart.md` §5) y
-> desplegarlo en alwaysdata (§6).
+> Estado: **publicado en alwaysdata con webhook** (feature 002, 2026-11-16) y validado en
+> producción con la computadora apagada. El `README.md` explica cómo publicar, actualizar y volver
+> a una versión anterior.
 
 ## 1. El problema
 
@@ -105,14 +105,24 @@ Lenguaje: **Python**, pero con herramientas modernas para practicar desarrollo g
 |------|----------|--------|
 | Gestión de proyecto / deps | `uv` + `pyproject.toml` | Rápido, lockfile reproducible (`uv.lock`) |
 | Python | 3.12+ | Compatible con alwaysdata |
-| Bot de Telegram | `aiogram` 3 (async) | Router/filtros modernos, distinto a `python-telegram-bot` usado antes |
+| Bot de Telegram | ~~`aiogram` 3~~ → `python-telegram-bot` 22 (async) | Ver los cambios de la feature 002, abajo |
 | Imagen | `Pillow` | Superponer las marcas (flor) y el nombre sobre la plantilla |
 | Persistencia | SQLite + `SQLAlchemy` 2.0 (tipado) | Un archivo, sin servidor; historial de citas para `/deshacer` |
 | Configuración | `pydantic-settings` + `.env` | Token y ID del dueño fuera del código |
 | Calidad | `ruff` (lint + format), `mypy` | Estilo y tipos consistentes |
 | Pruebas | `pytest` + `pytest-asyncio` | TDD de la lógica de conteo y render |
-| Despliegue | alwaysdata **Service** con long polling | Sin dominio/webhook; proceso persistente |
+| Despliegue | ~~alwaysdata **Service** con long polling~~ → sitio *User program* con webhook | Ver los cambios de la feature 002, abajo |
 
+
+**Cambios de la feature 002 (2026-11-16, publicación):**
+- **Webhook en lugar de polling**: el plan Free de alwaysdata no admite *Services*, así que el bot
+  corre como sitio *User program* en `CUENTA.alwaysdata.net/tarjeta` y recibe los mensajes por
+  webhook (Starlette + uvicorn, como el bot de finanzas). Se duerme tras 30 minutos sin mensajes y
+  despierta con el siguiente. En la computadora sigue usando polling con el bot de pruebas.
+- **`python-telegram-bot` en lugar de `aiogram`**: por memoria. Con `aiogram` el bot ocupaba
+  ~186 MB, que junto a los ~77 MB del bot de finanzas superaba los 256 MB del plan Free; con
+  `python-telegram-bot`, ~96 MB.
+- **Repositorio público en GitHub**: sin tokens, IDs ni el nombre de la cuenta de alwaysdata.
 
 ## 5.2 Análisis de la tarjeta real (2026-10-25)
 
@@ -152,5 +162,5 @@ nombre y flores):
 1. ✅ Responder las preguntas de la sección 5.
 2. ✅ Conseguir los assets de producción y mapear las casillas (ver 5.2).
 3. ✅ Construir el MVP: `/cita`, `/alta`, `/deshacer`, `/tarjeta`, `/clientes` y `/ayuda`.
-4. Desplegar y probar con clientes reales.
+4. ✅ Desplegar en alwaysdata y validarlo en producción (feature 002).
 5. (Opcional) Fase 2: tarjeta digital con link por cliente.

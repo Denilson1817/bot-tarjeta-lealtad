@@ -323,12 +323,12 @@ la computadora apagada.
   `git push -u origin main` y `git push -u origin 002-despliegue-webhook-alwaysdata`.
   Antes de subir, comprobar que `git ls-files | grep -E '(^|/)\.env$|\.db$|^data/'` no devuelve
   nada (lo cubre `.gitignore`); después, que `gh repo view --json visibility` dice `PUBLIC`.
-- [ ] T031 [US3] Primera publicación, siguiendo `README.md` §3 pero clonando **la rama de la
+- [X] T031 [US3] Primera publicación, siguiendo `README.md` §3 pero clonando **la rama de la
   feature** (`git clone -b 002-despliegue-webhook-alwaysdata …`, `quickstart.md` §2.2): uv, clon,
   entorno con el Python 3.12 de alwaysdata, `.env` de producción y sitio *User program* en
   `CUENTA.alwaysdata.net/tarjeta`.
   **Manual**: la hace el dueño con su acceso SSH y al panel.
-- [ ] T032 [US3] Comprobación de [quickstart.md](quickstart.md) §2.4, filas 1–5: `ok` en el
+- [X] T032 [US3] Comprobación de [quickstart.md](quickstart.md) §2.4, filas 1–5: `ok` en el
   navegador, 403 sin token, `/ayuda` del bot de producción, `/saldo` del bot de finanzas, logs y
   disco < 300 MB.
   **Manual** (dueño).
@@ -339,10 +339,10 @@ la computadora apagada.
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T033 Validación en producción de `quickstart.md` §3 con la computadora apagada (SC-001,
+- [X] T033 Validación en producción de `quickstart.md` §3 con la computadora apagada (SC-001,
   SC-003): la tabla de la 001 y las filas 6–8. La fila 6 mide además el arranque (< 10 s en el
   log, FR-012) y vuelve a revisar `/saldo` del bot de finanzas (SC-006). **Manual** (dueño).
-- [ ] T034 [P] Actualizar `bot-tarjeta-lealtad-contexto.md`:
+- [X] T034 [P] Actualizar `bot-tarjeta-lealtad-contexto.md`:
   - estado "publicado en alwaysdata (webhook)";
   - decisiones: plan Free sin Services, sitio en `/tarjeta`, cambio a python-telegram-bot por
     memoria;
