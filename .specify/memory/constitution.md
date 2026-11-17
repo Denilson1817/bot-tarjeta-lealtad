@@ -68,7 +68,7 @@ del bot, y cambiar de librería de Telegram sin tocar el dominio.
   (sin dominio propio). No se usan *Services*: el plan Free no los admite.
 - El servidor web DEBE escuchar en la IP y el puerto que alwaysdata entrega en `$IP` y `$PORT`.
 - Cada petición del webhook DEBE validarse con el *secret token* de Telegram, además del filtro
-  del dueño (principio V).
+  de personas autorizadas (principio V).
 - En desarrollo local se usa long polling con un bot de pruebas. El modo se elige por
   configuración (definir `WEBHOOK_URL` activa el webhook), sin cambiar código; ambos modos
   comparten handlers, dominio y persistencia.
@@ -127,4 +127,4 @@ Añadir una dependencia nueva DEBE justificarse en el plan de la feature corresp
 - Revisión de cumplimiento: al cerrar cada feature se confirma que los gates de calidad y
   los principios II–V se respetaron.
 
-**Version**: 4.0.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-11-16
+**Version**: 4.0.1 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-11-16
