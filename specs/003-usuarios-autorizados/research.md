@@ -14,9 +14,11 @@ Estas son las decisiones.
   - en `Ajustes`, el campo es `autorizados: Annotated[frozenset[int], NoDecode]` con un
     `field_validator(mode="before")` que separa por comas;
   - un valor que no es un entero produce `ValidationError` con el valor inválido y el formato
-    esperado (FR-006);
+    esperado (FR-006); los elementos vacíos (por ejemplo, una coma al final) se ignoran;
   - la propiedad `ids_autorizados = {owner_id} | autorizados`: el dueño siempre está incluido
-    (FR-002) y los duplicados se colapsan.
+    (FR-002) y los duplicados se colapsan;
+  - al arrancar, el log dice `Personas autorizadas: N` (cuántas, nunca sus IDs), para confirmar
+    después de un reinicio que se leyó la configuración.
 - **Rationale**:
   - un `.env` con solo `OWNER_ID` sigue funcionando sin cambios (FR-002, SC-005);
   - la coma es lo natural de escribir a mano en el servidor;
@@ -34,17 +36,20 @@ Estas son las decisiones.
   para las cuentas no autorizadas. `crear_aplicacion` recibe `autorizados` en lugar de `owner_id`,
   y `main()` le pasa `ajustes.ids_autorizados`.
 - **Rationale**: un único punto de control, igual que en las features 001 y 002.
-- **Registro de intentos** (FR-004):
-  - con nivel `WARNING` y el ID, el usuario y el tipo de chat, se registra lo que sea un intento
-    de usar el bot:
-    - cualquier toque de botón;
-    - cualquier mensaje en un chat privado;
-    - en un grupo, los mensajes que empiezan con `/`;
-  - el resto de la conversación de miembros no autorizados en un grupo se ignora con nivel
-    `DEBUG`. Si el bot es administrador recibe todos los mensajes del grupo, y anotarlos como
-    intentos llenaría el log de ruido.
-- **Alternatives considered**: `filters.User(user_id=...)` en cada handler (tantos puntos de
-  control como handlers).
+- **Registro** (FR-004, principio V): todo lo que llega de una cuenta no autorizada se anota con
+  nivel `WARNING`, con el ID, el usuario y el tipo de chat (`chat=privado` o `chat=grupo`):
+  mensajes, comandos, avisos y toques de botón, en privado o en grupos.
+- **Alternatives considered**:
+  - `filters.User(user_id=...)` en cada handler (tantos puntos de control como handlers);
+  - anotar con `WARNING` solo los *intentos* de uso (comandos, botones, mensajes privados) y la
+    conversación de un grupo con `DEBUG`: descartado porque con `LOG_LEVEL=INFO` esas cuentas no
+    quedarían en el log, y el principio V exige registrarlas. El ruido es acotado: el principio V
+    pide agregar el bot solo a grupos de confianza, donde casi todos estarán autorizados.
+- **Administradores anónimos**: un administrador que escribe como anónimo llega con la cuenta
+  compartida `GroupAnonymousBot` (no con la suya), así que el filtro lo ignora. Esa cuenta nunca se
+  autoriza: autorizaría a cualquier administrador anónimo de cualquier grupo donde esté el bot. Por
+  eso la guía pide que la persona escriba **en privado** al bot para obtener su ID, y advierte
+  sobre `GroupAnonymousBot`.
 
 ## 3. Grupos: solo comandos y botones
 
@@ -97,9 +102,9 @@ Estas son las decisiones.
 
 - **Configuración**: `AUTORIZADOS` vacío, uno, varios con espacios y duplicados, inválido; el
   dueño siempre incluido.
-- **Filtro**: una segunda cuenta autorizada pasa; una no autorizada que envía un comando, que pulsa
-  un botón o que escribe en privado → `ApplicationHandlerStop` y `WARNING`; una no autorizada que
-  conversa en un grupo → `ApplicationHandlerStop` sin `WARNING`.
+- **Filtro**: una segunda cuenta autorizada pasa; una no autorizada que escribe en privado, que
+  envía un comando o conversa en un grupo, o que pulsa un botón → `ApplicationHandlerStop` y
+  `WARNING` con el tipo de chat correspondiente.
 - **Integración** (aplicación real y `FakeTelegramAPI`):
   - la segunda persona registra una cita y confirma un botón que pidió el dueño;
   - en grupo, el texto normal no recibe respuesta y `/ayuda@tarjeta_bot` sí;

@@ -10,9 +10,12 @@ cuyos textos y flujos no cambian, y la
 |----------|-------------|-------|---------|
 | `AUTORIZADOS` | no | IDs de Telegram (enteros) separados por comas; espacios permitidos | `AUTORIZADOS=111111111,222222222` |
 
-- Personas autorizadas = `OWNER_ID` + `AUTORIZADOS`.
+- Personas autorizadas = `OWNER_ID` + `AUTORIZADOS`, sin duplicados.
+- Los elementos vacíos (por ejemplo, una coma al final) se ignoran.
 - Con un valor inválido, el bot no arranca:
   `AUTORIZADOS debe ser una lista de IDs numéricos separados por comas; valor inválido: 'abc'`.
+- Al arrancar, el log dice cuántas personas están autorizadas, sin sus IDs:
+  `Personas autorizadas: 2`.
 
 ## Qué hace el bot según quién escribe y dónde
 
@@ -24,12 +27,16 @@ cuyos textos y flujos no cambian, y la
 | Autorizado | Grupo | Texto que no es comando o aviso del grupo | **Ninguna** | — |
 | Autorizado | Cualquiera | Toque de botón (aunque lo pidiera otra persona autorizada) | Como en la 001; un solo efecto | Acciones con `usuario=<id>` |
 | No autorizado | Privado | Cualquier mensaje | **Ninguna** | `WARNING` con id, usuario y "privado" |
-| No autorizado | Grupo | Comando | **Ninguna** | `WARNING` con id, usuario y "grupo" |
+| No autorizado | Grupo | Cualquier mensaje (comando, texto o aviso) | **Ninguna** | `WARNING` con id, usuario y "grupo" |
 | No autorizado | Cualquiera | Toque de botón | **Ninguna**; la acción sigue disponible | `WARNING` con id, usuario y tipo de chat |
-| No autorizado | Grupo | Texto que no es comando o aviso del grupo | **Ninguna** | `DEBUG` (no ensucia el log) |
 
-Formato de la línea `WARNING`, que es de donde el dueño copia el ID:
+Formato de la línea `WARNING`:
 
 ```text
-Mensaje ignorado de una cuenta no autorizada: id=222222222 usuario=nombre chat=grupo
+Mensaje ignorado de una cuenta no autorizada: id=222222222 usuario=nombre chat=privado
 ```
+
+El dueño copia el ID de una línea con `chat=privado`: la persona escribe `/ayuda` **en privado**
+al bot. En un grupo, un administrador que escribe como anónimo aparece como
+`usuario=GroupAnonymousBot`, una cuenta compartida de Telegram que **nunca** se autoriza (daría
+acceso a cualquier administrador anónimo).

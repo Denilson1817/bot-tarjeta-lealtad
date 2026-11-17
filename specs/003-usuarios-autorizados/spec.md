@@ -125,6 +125,11 @@ bot no responde; luego enviar un comando y comprobar que sí responde.
   está autorizado.
 - **Mensajes del propio sistema de Telegram en el grupo** (alguien entra o sale, cambios del grupo):
   el bot no responde.
+- **Administrador anónimo en el grupo**: si una persona autorizada escribe como administradora
+  anónima, Telegram oculta su cuenta y la muestra como una cuenta compartida del sistema; el bot no
+  la reconoce y la ignora. Esa cuenta compartida no se autoriza nunca, porque autorizaría a
+  cualquier administrador anónimo; el ID de una persona se obtiene de un mensaje que envía en
+  privado al bot.
 
 ## Requirements *(mandatory)*
 

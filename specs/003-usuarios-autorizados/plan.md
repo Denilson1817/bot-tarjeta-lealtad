@@ -13,8 +13,8 @@ Telegram y la configuración; el dominio no se toca:
 
 1. **`config.py`**: el campo `autorizados` (`NoDecode` + validador por comas) y la propiedad
    `ids_autorizados`.
-2. **`bot/seguridad.py`**: el filtro recibe el conjunto, y solo anota como `WARNING` los
-   *intentos* de uso (comandos, botones, mensajes privados), no la conversación de un grupo.
+2. **`bot/seguridad.py`**: el filtro recibe el conjunto y anota con `WARNING` todo lo que llega de
+   una cuenta no autorizada, con el tipo de chat (`privado` o `grupo`).
 3. **`bot/handlers.py`**:
    - `sin_comando` solo responde en chats privados, así que en grupos no hay ruido;
    - las acciones que cambian datos registran `usuario=<id>` con un parámetro `autor` explícito.
@@ -50,7 +50,7 @@ Telegram y la configuración; el dominio no se toca:
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.* Constitución **v4.0.0**.
+*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.* Constitución **v4.0.1** (la 4.0.1 solo corrige la redacción del principio VI).
 
 | Principio | Verificación | Antes de Fase 0 | Después de Fase 1 |
 |-----------|--------------|-----------------|-------------------|
@@ -58,10 +58,10 @@ Telegram y la configuración; el dominio no se toca:
 | II. Dominio separado | El dominio no cambia. `config.py` suma un campo sin importar `telegram` (lo vigila la prueba de arquitectura). | ✅ | ✅ |
 | III. TDD en el dominio | No se toca el dominio. La configuración y el filtro, que son lo nuevo, se escriben con prueba primero. | ✅ | ✅ |
 | IV. Datos como fuente de verdad | Sin cambios en el modelo ni en las reglas de conteo. | ✅ | ✅ |
-| V. Seguridad | **Acceso**: responde solo a las cuentas autorizadas, también en grupos, con un único filtro en el grupo -1. **Intentos**: los no autorizados quedan con `WARNING`. **Secretos**: los IDs van en `.env`, nunca en el repositorio. **Grupos**: la regla de visibilidad queda en el README. | ✅ | ✅ |
+| V. Seguridad | **Acceso**: responde solo a las cuentas autorizadas, también en grupos, con un único filtro en el grupo -1. **Registro**: todo lo que llega de una cuenta no autorizada queda con `WARNING`, también la conversación de un grupo (se descartó anotarla con `DEBUG`, que no se escribe con `LOG_LEVEL=INFO`). **Secretos**: los IDs van en `.env`, nunca en el repositorio, y el log de arranque solo dice cuántos hay. **Grupos**: la regla de visibilidad y el aviso sobre `GroupAnonymousBot` quedan en el README. | ✅ | ✅ |
 | VI. alwaysdata Free | **Despliegue**: sin cambios; publicar es «Actualizar», agregar `AUTORIZADOS` y reiniciar. **Memoria**: sin impacto medible. | ✅ | ✅ |
 | Stack | Sin dependencias nuevas. `NoDecode` ya viene en pydantic-settings 2.16. | ✅ | ✅ |
-| Flujo | La rama `003-usuarios-autorizados` sale de la 002. Se integra a `main` después de la 002 y con los gates en verde. Enmienda v4.0.0 en su propio commit (`b85a7e3`). | ✅ | ✅ |
+| Flujo | La rama `003-usuarios-autorizados` sale de la 002. Se integra a `main` después de la 002 y con los gates en verde. Enmienda v4.0.0 en su propio commit (`b85a7e3`); la 4.0.1, también en uno propio. | ✅ | ✅ |
 
 **Resultado**: pasa sin violaciones.
 
@@ -89,14 +89,14 @@ README.md                       # + sección "Personas autorizadas" y nota de vi
 src/tarjeta_lealtad/
 ├── config.py                   # + autorizados (NoDecode, validador por comas), ids_autorizados
 └── bot/
-    ├── seguridad.py            # crear_filtro(autorizados); WARNING solo para intentos de uso
+    ├── seguridad.py            # crear_filtro(autorizados); WARNING con el tipo de chat
     ├── handlers.py             # sin_comando solo en privado; parámetro autor en las acciones
     └── app.py                  # crear_aplicacion(…, autorizados, …); main() usa ids_autorizados
 tests/
 ├── unit/test_config.py         # + AUTORIZADOS
 └── bot/
     ├── conftest.py             # FakeTelegramAPI/update_de: tipo de chat (privado/grupo) y avisos
-    ├── test_seguridad.py       # conjunto de autorizados; WARNING solo para intentos
+    ├── test_seguridad.py       # conjunto de autorizados; WARNING con chat=privado|grupo
     ├── test_handlers_*.py      # + autor en el log
     ├── test_integracion_app.py # + segunda persona, grupo, botón compartido, no autorizado
     └── (test_web.py, test_app.py: ajustar la firma de crear_aplicacion)

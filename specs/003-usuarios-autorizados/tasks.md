@@ -159,8 +159,9 @@ hizo cada acción que cambia datos (FR-010).
   - **en grupo**: `OTRA` envía `/cita@tarjeta_bot Lucía` con `chat=GRUPO`; el dueño pulsa `Crear` →
     `sendPhoto` con `chat_id == GRUPO`; un segundo toque de `OTRA` → "ya se aplicó o caducó"
     (US1-3, FR-005, FR-007);
-  - **mismo día entre personas**: el dueño registra `/cita Rosa` y `OTRA` envía `/cita Rosa` →
-    pide confirmación con los botones de "mismo día" (US1-4).
+  - **mismo día entre personas**: con Rosa ya dada de alta (`/alta Rosa`), el dueño registra
+    `/cita Rosa` y `OTRA` envía `/cita Rosa` → pide confirmación con los botones de "mismo día"
+    (US1-4).
 
 ### Implementation for User Story 1
 
@@ -183,9 +184,9 @@ identifica quién hizo cada acción.
 
 ## Phase 4: User Story 2 - Las cuentas no autorizadas no pueden usar el bot (Priority: P1)
 
-**Goal**: ninguna cuenta no autorizada obtiene respuesta ni efecto, en privado o en grupos. Sus
-*intentos* quedan en el log con `WARNING` (de ahí se copia su ID); la conversación normal de un
-grupo, solo con `DEBUG` ([research §2](research.md#2-filtro-de-acceso)).
+**Goal**: ninguna cuenta no autorizada obtiene respuesta ni efecto, en privado o en grupos. Todo
+lo que envía queda en el log con `WARNING` y el tipo de chat (`chat=privado` o `chat=grupo`); el ID
+se copia de una línea con `chat=privado` ([research §2](research.md#2-filtro-de-acceso)).
 
 **Independent Test**: las pruebas de T015–T016 en verde. En producción, la fila 5 de
 [quickstart §3](quickstart.md#3-validación-en-producción).
@@ -195,16 +196,15 @@ grupo, solo con `DEBUG` ([research §2](research.md#2-filtro-de-acceso)).
 - [ ] T015 [P] [US2] Ampliar `tests/bot/test_seguridad.py` según la tabla del
   [contrato](contracts/acceso-y-grupos.md#qué-hace-el-bot-según-quién-escribe-y-dónde), con updates
   construidos a partir de `update_json` (por ejemplo, `Update.de_json(...)`):
-  - una cuenta no autorizada:
-    - en privado, con un texto cualquiera → `ApplicationHandlerStop` y
-      `WARNING` `Mensaje ignorado de una cuenta no autorizada: id=… usuario=… chat=privado`;
-    - en grupo, con `/cita Carmen` → `ApplicationHandlerStop` y `WARNING` con `chat=grupo`;
-    - un toque de botón en un grupo → `ApplicationHandlerStop` y `WARNING` con `chat=grupo`;
-    - en grupo, con un texto normal o con un aviso del grupo → `ApplicationHandlerStop` **sin**
-      `WARNING` (registro `DEBUG`);
+  - una cuenta no autorizada, siempre con `ApplicationHandlerStop`:
+    - en privado, con un texto cualquiera → `WARNING`
+      `Mensaje ignorado de una cuenta no autorizada: id=… usuario=… chat=privado`;
+    - en grupo, con `/cita Carmen`, con un texto normal y con un aviso del grupo → `WARNING` con
+      `chat=grupo`;
+    - un toque de botón en un grupo → `WARNING` con `chat=grupo`;
   - una cuenta autorizada, en cualquier caso, no deja ningún `WARNING`.
 
-  Deben fallar los casos de `chat=` y del registro `DEBUG`.
+  Deben fallar los casos que esperan `chat=`.
 - [ ] T016 [P] [US2] Ampliar `tests/bot/test_integracion_app.py` con una constante `INTRUSO` (no
   autorizada):
   - `INTRUSO` envía `/cita@tarjeta_bot Rosa` con `chat=GRUPO` → ninguna llamada `send*` y la base
@@ -220,14 +220,12 @@ grupo, solo con `DEBUG` ([research §2](research.md#2-filtro-de-acceso)).
 
 - [ ] T017 [US2] En `src/tarjeta_lealtad/bot/seguridad.py`, para una cuenta no autorizada:
   - tipo de chat: `privado` si `update.effective_chat` es privado; si no, `grupo`;
-  - es un **intento** si es un toque de botón, si el chat es privado o si el texto del mensaje
-    empieza con `/`: `log.warning("Mensaje ignorado de una cuenta no autorizada: id=%s usuario=%s chat=%s", …)`;
-  - en otro caso, el mismo texto con `log.debug`;
-  - en ambos casos, `ApplicationHandlerStop`.
+  - `log.warning("Mensaje ignorado de una cuenta no autorizada: id=%s usuario=%s chat=%s", …)` y
+    `ApplicationHandlerStop`.
 - [ ] T018 [US2] Correr los gates de `pyproject.toml` y dejarlos en verde.
 
 **Checkpoint**: el 100 % de lo que envía una cuenta no autorizada queda sin respuesta ni efecto
-(SC-002), y el log solo anota sus intentos.
+(SC-002), y todo queda en el log con el tipo de chat (principio V).
 
 ---
 
@@ -243,9 +241,13 @@ sigue recibiendo "Usa /ayuda…" ([research §3](research.md#3-grupos-solo-coman
 
 - [ ] T019 [US4] Ampliar `tests/bot/test_integracion_app.py`:
   - en el grupo, `hola` del dueño y de `OTRA` → ninguna llamada `send*` (US4-1, SC-003);
-  - un aviso de miembro nuevo (`aviso=True`, `chat=GRUPO`) → ninguna llamada `send*` (FR-008);
-  - `/ayuda@tarjeta_bot` en el grupo → `sendMessage` con `chat_id == GRUPO` (US4-2);
-  - `/ayuda@otro_bot` en el grupo → ninguna llamada `send*`;
+  - un aviso de miembro nuevo enviado por el dueño (`aviso=True`, `de=DUENO`, `chat=GRUPO`, como
+    cuando agrega a alguien) → ninguna llamada `send*` (FR-008);
+  - `/ayuda@tarjeta_bot` del dueño en el grupo → `sendMessage` con `chat_id == GRUPO` (US4-2);
+  - `/ayuda@otro_bot` del dueño en el grupo → ninguna llamada `send*`;
+
+  Todos los mensajes de esta tarea vienen de cuentas autorizadas: si vinieran de otra, el filtro
+  los detendría antes y la prueba no comprobaría T020.
   - en privado, `hola` sigue respondiendo "Usa /ayuda…" (US4-3, FR-009; comprobar que
     `test_ayuda_y_texto_libre` lo cubre).
 
@@ -280,8 +282,9 @@ cada vez (SC-004). En producción, la fila 7 de
     cuenta se ignora".
   - **Publicar en alwaysdata §1**: mencionar `AUTORIZADOS` (opcional) junto a `OWNER_ID`.
   - **Sección nueva «Personas autorizadas»**:
-    1. **Hallar el ID**: pedirle a la persona que escriba `/ayuda` al bot y buscar la línea
-       "cuenta no autorizada" en el log (en la computadora, la terminal; en alwaysdata,
+    1. **Hallar el ID**: pedirle a la persona que escriba `/ayuda` al bot **en privado** (no en el
+       grupo) y buscar la línea "cuenta no autorizada" con `chat=privado` en el log (en la
+       computadora, la terminal; en alwaysdata,
        `grep -rh "cuenta no autorizada" ~/admin/logs/sites/ | tail -3`).
     2. **Autorizar**: `AUTORIZADOS=<id>` en `.env` (varias personas, separadas por comas) y
        reiniciar (en la computadora, Ctrl+C y volver a arrancar; en alwaysdata, reiniciar el sitio
@@ -293,7 +296,9 @@ cada vez (SC-004). En producción, la fila 7 de
        El bot ignora la conversación normal y a los miembros no autorizados.
     5. **Administradores anónimos**: si alguien tiene activado «Permanecer anónimo» como
        administrador del grupo, Telegram oculta su cuenta y el bot no lo reconoce (en el log
-       aparece `usuario=GroupAnonymousBot`); hay que desactivarlo.
+       aparece `usuario=GroupAnonymousBot`); hay que desactivarlo. **Nunca** agregar a
+       `AUTORIZADOS` el ID de `GroupAnonymousBot`: es una cuenta compartida y daría acceso a
+       cualquier administrador anónimo.
 
   Cubre FR-011 y SC-004.
 - [ ] T024 [US3] (Opcional) Validación local de [quickstart §1](quickstart.md#1-en-la-computadora)
@@ -324,12 +329,18 @@ cada vez (SC-004). En producción, la fila 7 de
 
   La parte del servidor es **manual** (dueño).
 - [ ] T028 Autorizar a la otra persona en producción, [quickstart §2](quickstart.md#2-publicar)
-  pasos 3–5: que escriba `/ayuda` al bot, copiar su ID del log del sitio, agregarlo a
-  `AUTORIZADOS` en el `.env` del servidor y reiniciar el sitio. **Manual** (dueño).
+  pasos 3–5:
+  - que escriba `/ayuda` al bot **en privado**;
+  - copiar su ID de la línea con `chat=privado` del log del sitio (nunca `GroupAnonymousBot`);
+  - agregarlo a `AUTORIZADOS` en el `.env` del servidor y reiniciar el sitio;
+  - comprobar que el log dice `Personas autorizadas: 2`.
+
+  Medir el tiempo desde que se tiene el ID: menos de 5 minutos (SC-004). **Manual** (dueño).
 - [ ] T029 Validación en producción de [quickstart §3](quickstart.md#3-validación-en-producción),
-  filas 1–7 (SC-001 – SC-005), con la otra persona y el grupo. **Manual** (dueño).
+  filas 1–7 (SC-001 – SC-005), con la otra persona y el grupo. La fila 7 mide el tiempo de quitar
+  a una persona (SC-004). **Manual** (dueño).
 - [ ] T030 Cerrar la feature en `specs/003-usuarios-autorizados/tasks.md`:
-  - **revisión de cumplimiento** de la constitución v4.0.0: gates en verde y principios I–VI
+  - **revisión de cumplimiento** de la constitución v4.0.1: gates en verde y principios I–VI
     respetados;
   - si T029 encontró problemas, corregirlos en una rama nueva con pruebas;
   - si no, marcar la feature como cerrada, hacer commit y `git push`.
@@ -356,7 +367,7 @@ cada vez (SC-004). En producción, la fila 7 de
 | Historia | Depende de | Notas |
 |----------|------------|-------|
 | US1 (P1) | Foundational | Segunda persona; autor en el log |
-| US2 (P1) | Foundational; tras US1 por `test_integracion_app.py` | Intentos con `WARNING`, conversación con `DEBUG` |
+| US2 (P1) | Foundational; tras US1 por `test_integracion_app.py` | `WARNING` con `chat=privado\|grupo` |
 | US4 (P2) | Foundational; tras US1 por `handlers.py` | `sin_comando` solo en privado |
 | US3 (P2) | US4 | `.env.example` y README |
 
@@ -397,7 +408,8 @@ Task: "T013 src/tarjeta_lealtad/bot/handlers.py"
 
 1. Fases 1 y 2: el bot acepta un conjunto de personas autorizadas; sin `AUTORIZADOS`, nada cambia.
 2. Fase 3 (US1): la segunda persona usa todo, y el log dice quién hizo cada acción.
-3. Fase 4 (US2): las cuentas no autorizadas siguen fuera, y el log solo anota sus intentos.
+3. Fase 4 (US2): las cuentas no autorizadas siguen fuera, y el log indica si escribieron en
+   privado o en un grupo.
 4. Fase 5 (US4): el grupo sin ruido. **Necesaria antes de publicar si el bot va a un grupo**: sin
    ella, si el bot es administrador del grupo, respondería "Usa /ayuda…" a cada mensaje.
 5. Fase 6 (US3): la guía.
@@ -407,7 +419,11 @@ Task: "T013 src/tarjeta_lealtad/bot/handlers.py"
 ### Riesgos a vigilar
 
 - **Administradores anónimos**: un administrador con «Permanecer anónimo» llega como
-  `GroupAnonymousBot` y el bot lo ignora. Queda documentado en el README (T023).
+  `GroupAnonymousBot` y el bot lo ignora. Esa cuenta compartida nunca se autoriza; el ID se toma
+  de un mensaje en privado. Queda documentado en el README (T023) y en el quickstart.
+- **Ruido en el log**: todo lo que envía una cuenta no autorizada queda con `WARNING`. Si el grupo
+  crece con miembros no autorizados, el log crece con ellos; el principio V pide agregar el bot
+  solo a grupos de confianza.
 - **Orden de integración**: la rama 003 sale de la 002. Si la 002 necesita correcciones tras su
   T033, se hacen en la 002 y se integran a `main` antes que la 003.
 
