@@ -23,7 +23,9 @@ DUENO = 5221
 @pytest.fixture
 def sitio(servicio: Any, api_falsa: Callable[..., Any]) -> tuple[Starlette, Any]:
     api = api_falsa()
-    aplicacion = crear_aplicacion(servicio, DUENO, "42:PRUEBA", request=api, con_updater=False)
+    aplicacion = crear_aplicacion(
+        servicio, frozenset({DUENO}), "42:PRUEBA", request=api, con_updater=False
+    )
     return crear_app_web(aplicacion, URL, SECRETO), api
 
 

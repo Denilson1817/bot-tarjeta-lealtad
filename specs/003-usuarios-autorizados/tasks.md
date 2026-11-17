@@ -50,7 +50,7 @@ description: "Lista de tareas para que las personas autorizadas por el dueño us
 **Purpose**: que las pruebas puedan simular grupos, avisos del grupo y toques de botón de otra
 cuenta.
 
-- [ ] T001 Ampliar `tests/bot/conftest.py` sin cambiar el comportamiento de las pruebas actuales:
+- [X] T001 Ampliar `tests/bot/conftest.py` sin cambiar el comportamiento de las pruebas actuales:
   - `update_json(update_id, texto=None, *, de=1, data=None, chat=None, aviso=False)`:
     - con `chat=None`, el chat es privado con id `de` (como hoy);
     - con `chat=<id negativo>`, el chat es `{"id": chat, "type": "group", "title": "Grupo"}`,
@@ -74,7 +74,7 @@ autorizados. Con `AUTORIZADOS` vacío, el bot se comporta exactamente igual que 
 
 ### Pruebas (escribir primero; deben FALLAR)
 
-- [ ] T002 [P] Ampliar `tests/unit/test_config.py` ([research §1](research.md#1-configuración-de-las-personas-autorizadas)):
+- [X] T002 [P] Ampliar `tests/unit/test_config.py` ([research §1](research.md#1-configuración-de-las-personas-autorizadas)):
   - agregar `"AUTORIZADOS"` a `VARIABLES`;
   - sin `AUTORIZADOS` → `autorizados == frozenset()` e `ids_autorizados == {42}` (FR-002,
     US3-1);
@@ -86,21 +86,21 @@ autorizados. Con `AUTORIZADOS` vacío, el bot se comporta exactamente igual que 
   - `AUTORIZADOS="42,111"` (el dueño repetido) → `ids_autorizados == {42, 111}`;
   - `AUTORIZADOS="111,abc"` → `ValidationError` cuyo texto contiene `'abc'` y "separados por
     comas" (FR-006, US3-4).
-- [ ] T003 [P] Reescribir `tests/bot/test_seguridad.py` para `crear_filtro(autorizados)`:
+- [X] T003 [P] Reescribir `tests/bot/test_seguridad.py` para `crear_filtro(autorizados)`:
   - con `crear_filtro(frozenset({DUENO, OTRA}))`, ninguna de las dos lanza nada;
   - una tercera cuenta que escribe en privado → `ApplicationHandlerStop` y un `WARNING` con su ID y
     su usuario;
   - un update sin `effective_user` → `ApplicationHandlerStop`.
 
   Los casos por tipo de chat (grupo, botón, conversación) son de US2 (T015).
-- [ ] T004 [P] Ampliar `tests/bot/test_app.py`: con `OWNER_ID=42` y `AUTORIZADOS=7` en el entorno,
+- [X] T004 [P] Ampliar `tests/bot/test_app.py`: con `OWNER_ID=42` y `AUTORIZADOS=7` en el entorno,
   `main()` llama `crear_aplicacion` con `frozenset({42, 7})` (sustituirla con `monkeypatch` por un
   registro que delega en la original), en polling y en webhook, y el log de arranque dice
   "Personas autorizadas: 2" sin mostrar los IDs.
 
 ### Implementación
 
-- [ ] T005 [P] En `src/tarjeta_lealtad/config.py`, según
+- [X] T005 [P] En `src/tarjeta_lealtad/config.py`, según
   [contracts/acceso-y-grupos.md](contracts/acceso-y-grupos.md):
   - `autorizados: Annotated[frozenset[int], NoDecode] = frozenset()` (`NoDecode` de
     `pydantic_settings`, para que no intente leerla como JSON);
@@ -109,18 +109,18 @@ autorizados. Con `AUTORIZADOS` vacío, el bot se comporta exactamente igual que 
     es entero lanza `ValueError` con el mensaje del contrato:
     `AUTORIZADOS debe ser una lista de IDs numéricos separados por comas; valor inválido: 'abc'`;
   - la propiedad `ids_autorizados -> frozenset[int]`: `{owner_id} | autorizados`.
-- [ ] T006 [P] En `src/tarjeta_lealtad/bot/seguridad.py`, cambiar `crear_filtro_dueno(owner_id)` por
+- [X] T006 [P] En `src/tarjeta_lealtad/bot/seguridad.py`, cambiar `crear_filtro_dueno(owner_id)` por
   `crear_filtro(autorizados: frozenset[int])`: corta con `ApplicationHandlerStop` todo update sin
   usuario o de una cuenta fuera del conjunto, con el `WARNING` actual. Actualizar el docstring del
   módulo (personas autorizadas; FR-004 de la 003, principio V).
-- [ ] T007 En `src/tarjeta_lealtad/bot/app.py`, después de T005 y T006:
+- [X] T007 En `src/tarjeta_lealtad/bot/app.py`, después de T005 y T006:
   - `crear_aplicacion(servicio, autorizados: frozenset[int], token, *, request=None, con_updater=True, al_iniciar=None)`
     registra `TypeHandler(Update, crear_filtro(autorizados))` en el grupo -1;
   - `main()` pasa `ajustes.ids_autorizados` en ambos modos y anota
     `log.info("Personas autorizadas: %s", len(...))`;
   - actualizar las llamadas existentes en `tests/bot/test_integracion_app.py`
     (`autorizados=frozenset({DUENO})`), `tests/bot/test_web.py` y `tests/bot/test_app.py`.
-- [ ] T008 Correr los gates de `pyproject.toml` (`uv run ruff check`, `uv run ruff format --check`,
+- [X] T008 Correr los gates de `pyproject.toml` (`uv run ruff check`, `uv run ruff format --check`,
   `uv run mypy`, `uv run pytest`) y dejarlos en verde.
 
 **Checkpoint**: con `AUTORIZADOS` vacío, todas las pruebas anteriores siguen en verde (SC-005); con
@@ -139,17 +139,17 @@ hizo cada acción que cambia datos (FR-010).
 
 ### Tests for User Story 1 ⚠️ (escribir primero; deben FALLAR)
 
-- [ ] T009 [P] [US1] Ampliar `tests/bot/test_handlers_cita.py` (con `caplog`):
+- [X] T009 [P] [US1] Ampliar `tests/bot/test_handlers_cita.py` (con `caplog`):
   - `/cita` de un cliente existente desde `user_id=7` → el log contiene
     `Cita registrada: cliente=<id> premio=False usuario=7`;
   - cliente nuevo pedido por la cuenta 1 y `Crear` pulsado con `de=7` → `Alta: … usuario=7` y
     `Cita registrada: … usuario=7` (cuenta quien pulsa, no quien pidió);
   - "mismo día" confirmado con `de=7` → `Cita registrada: … usuario=7`.
-- [ ] T010 [P] [US1] Ampliar `tests/bot/test_handlers_alta.py`: `/alta Rosa 6` desde `user_id=7` →
+- [X] T010 [P] [US1] Ampliar `tests/bot/test_handlers_alta.py`: `/alta Rosa 6` desde `user_id=7` →
   `Alta: cliente=<id> previas=6 usuario=7`; un homónimo confirmado con `de=7` → `Alta: … usuario=7`.
-- [ ] T011 [P] [US1] Ampliar `tests/bot/test_handlers_deshacer.py`: deshacer confirmado con `de=7`
+- [X] T011 [P] [US1] Ampliar `tests/bot/test_handlers_deshacer.py`: deshacer confirmado con `de=7`
   → `Cita anulada: cliente=<id> premio=False usuario=7`.
-- [ ] T012 [P] [US1] Ampliar `tests/bot/test_integracion_app.py` con constantes `OTRA` (segunda
+- [X] T012 [P] [US1] Ampliar `tests/bot/test_integracion_app.py` con constantes `OTRA` (segunda
   persona autorizada) y `GRUPO` (ID negativo); la aplicación se crea con
   `autorizados=frozenset({DUENO, OTRA})`:
   - **base compartida**: `OTRA` envía `/alta Rosa 6` en privado y el `/clientes` del dueño muestra
@@ -165,7 +165,7 @@ hizo cada acción que cambia datos (FR-010).
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] En `src/tarjeta_lealtad/bot/handlers.py` ([research §5](research.md#5-quién-hizo-cada-acción-fr-010)):
+- [X] T013 [US1] En `src/tarjeta_lealtad/bot/handlers.py` ([research §5](research.md#5-quién-hizo-cada-acción-fr-010)):
   - `_autor(update) -> int`: el ID de `update.effective_user` (el filtro del grupo -1 garantiza que
     existe);
   - parámetro explícito `autor: int` en `_resolver`, `_continuar`, `_registrar`, `_crear_alta`,
@@ -175,7 +175,7 @@ hizo cada acción que cambia datos (FR-010).
     `Alta: cliente=%s previas=%s usuario=%s` y `Cita anulada: cliente=%s premio=%s usuario=%s`;
   - el docstring de `_ofrecer_opciones` dice "para que se elija" en lugar de "para que el dueño
     elija".
-- [ ] T014 [US1] Correr los gates de `pyproject.toml` y dejarlos en verde.
+- [X] T014 [US1] Correr los gates de `pyproject.toml` y dejarlos en verde.
 
 **Checkpoint**: una segunda persona usa todo el bot en privado y en grupo (en pruebas), y el log
 identifica quién hizo cada acción.
@@ -193,7 +193,7 @@ se copia de una línea con `chat=privado` ([research §2](research.md#2-filtro-d
 
 ### Tests for User Story 2 ⚠️ (escribir primero)
 
-- [ ] T015 [P] [US2] Ampliar `tests/bot/test_seguridad.py` según la tabla del
+- [X] T015 [P] [US2] Ampliar `tests/bot/test_seguridad.py` según la tabla del
   [contrato](contracts/acceso-y-grupos.md#qué-hace-el-bot-según-quién-escribe-y-dónde), con updates
   construidos a partir de `update_json` (por ejemplo, `Update.de_json(...)`):
   - una cuenta no autorizada, siempre con `ApplicationHandlerStop`:
@@ -205,7 +205,7 @@ se copia de una línea con `chat=privado` ([research §2](research.md#2-filtro-d
   - una cuenta autorizada, en cualquier caso, no deja ningún `WARNING`.
 
   Deben fallar los casos que esperan `chat=`.
-- [ ] T016 [P] [US2] Ampliar `tests/bot/test_integracion_app.py` con una constante `INTRUSO` (no
+- [X] T016 [P] [US2] Ampliar `tests/bot/test_integracion_app.py` con una constante `INTRUSO` (no
   autorizada):
   - `INTRUSO` envía `/cita@tarjeta_bot Rosa` con `chat=GRUPO` → ninguna llamada `send*` y la base
     no cambia (US2-1);
@@ -218,11 +218,11 @@ se copia de una línea con `chat=privado` ([research §2](research.md#2-filtro-d
 
 ### Implementation for User Story 2
 
-- [ ] T017 [US2] En `src/tarjeta_lealtad/bot/seguridad.py`, para una cuenta no autorizada:
+- [X] T017 [US2] En `src/tarjeta_lealtad/bot/seguridad.py`, para una cuenta no autorizada:
   - tipo de chat: `privado` si `update.effective_chat` es privado; si no, `grupo`;
   - `log.warning("Mensaje ignorado de una cuenta no autorizada: id=%s usuario=%s chat=%s", …)` y
     `ApplicationHandlerStop`.
-- [ ] T018 [US2] Correr los gates de `pyproject.toml` y dejarlos en verde.
+- [X] T018 [US2] Correr los gates de `pyproject.toml` y dejarlos en verde.
 
 **Checkpoint**: el 100 % de lo que envía una cuenta no autorizada queda sin respuesta ni efecto
 (SC-002), y todo queda en el log con el tipo de chat (principio V).
@@ -239,7 +239,7 @@ sigue recibiendo "Usa /ayuda…" ([research §3](research.md#3-grupos-solo-coman
 
 ### Tests for User Story 4 ⚠️ (escribir primero; deben FALLAR)
 
-- [ ] T019 [US4] Ampliar `tests/bot/test_integracion_app.py`:
+- [X] T019 [US4] Ampliar `tests/bot/test_integracion_app.py`:
   - en el grupo, `hola` del dueño y de `OTRA` → ninguna llamada `send*` (US4-1, SC-003);
   - un aviso de miembro nuevo enviado por el dueño (`aviso=True`, `de=DUENO`, `chat=GRUPO`, como
     cuando agrega a alguien) → ninguna llamada `send*` (FR-008);
@@ -253,10 +253,10 @@ sigue recibiendo "Usa /ayuda…" ([research §3](research.md#3-grupos-solo-coman
 
 ### Implementation for User Story 4
 
-- [ ] T020 [US4] En `registrar_handlers` de `src/tarjeta_lealtad/bot/handlers.py`, cambiar el último
+- [X] T020 [US4] En `registrar_handlers` de `src/tarjeta_lealtad/bot/handlers.py`, cambiar el último
   handler por `MessageHandler(filters.ChatType.PRIVATE, sin_comando)`, con un comentario: en grupos,
   la conversación y los avisos no reciben respuesta.
-- [ ] T021 [US4] Correr los gates de `pyproject.toml` y dejarlos en verde.
+- [X] T021 [US4] Correr los gates de `pyproject.toml` y dejarlos en verde.
 
 **Checkpoint**: en un grupo, 0 respuestas a mensajes que no son comandos (SC-003).
 
@@ -272,11 +272,11 @@ la Fase 2 (US3-1, US3-4).
 cada vez (SC-004). En producción, la fila 7 de
 [quickstart §3](quickstart.md#3-validación-en-producción).
 
-- [ ] T022 [P] [US3] En `.env.example`, después de `OWNER_ID`, agregar comentada
+- [X] T022 [P] [US3] En `.env.example`, después de `OWNER_ID`, agregar comentada
   `# AUTORIZADOS=111111111,222222222`, con la explicación: IDs de otras personas autorizadas,
   separados por comas, opcional; el dueño siempre está autorizado; cómo obtener un ID, en el README
   («Personas autorizadas»).
-- [ ] T023 [P] [US3] Actualizar `README.md`, sin IDs reales:
+- [X] T023 [P] [US3] Actualizar `README.md`, sin IDs reales:
   - **Descripción** (línea 3): "para el dueño del negocio y las personas que el dueño autorice".
   - **Comandos** (línea 19): "El bot solo responde a las personas autorizadas; cualquier otra
     cuenta se ignora".
@@ -312,11 +312,11 @@ cada vez (SC-004). En producción, la fila 7 de
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T025 [P] Actualizar `bot-tarjeta-lealtad-contexto.md`:
+- [X] T025 [P] Actualizar `bot-tarjeta-lealtad-contexto.md`:
   - decisión del 2026-11-16: otra persona con todos los permisos, también en un grupo donde las
     tarjetas son visibles (constitución v4.0.0);
   - estado de la feature 003.
-- [ ] T026 Cierre en la rama `003-usuarios-autorizados`:
+- [X] T026 Cierre en la rama `003-usuarios-autorizados`:
   - gates de `pyproject.toml` en verde;
   - `git grep -nE '[0-9]{9,}' -- README.md .env.example src tests specs/003-usuarios-autorizados`
     solo devuelve los ejemplos `111111111` y `222222222`;

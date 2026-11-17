@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any
@@ -86,3 +87,29 @@ async def test_alta_sin_nombre_muestra_el_uso(
     mensaje = mensaje_falso("/alta")
     await tg.comando(handlers.cmd_alta, mensaje, args)
     mensaje.reply_text.assert_awaited_once_with(textos.uso("alta"))
+
+
+# --- Quién hizo cada acción (feature 003, FR-010) ----------------------------------------------
+
+
+async def test_el_alta_anota_quien_la_hizo(
+    mensaje_falso: Any, servicio: Any, tg: Any, caplog: pytest.LogCaptureFixture
+) -> None:
+    mensaje = mensaje_falso("/alta Rosa 6", user_id=7)
+    with caplog.at_level(logging.INFO):
+        await tg.comando(handlers.cmd_alta, mensaje, "Rosa 6")
+    rosa = servicio.buscar("rosa")
+    assert isinstance(rosa, Encontrado)
+    assert f"Alta: cliente={rosa.cliente.id} previas=6 usuario=7" in caplog.messages
+
+
+async def test_homonimo_confirmado_por_otra_persona(
+    mensaje_falso: Any, servicio: Any, tg: Any, utc: Utc, caplog: pytest.LogCaptureFixture
+) -> None:
+    servicio.crear_cliente("Rosa", 0, utc("2026-11-16 15:00"))
+    mensaje = mensaje_falso("/alta Rosa 2")
+    await tg.comando(handlers.cmd_alta, mensaje, "Rosa 2")
+    with caplog.at_level(logging.INFO):
+        await tg.pulsar(mensaje_falso(), tg.botones(mensaje.reply_text)[0][1], de=7)
+    nueva = servicio.homonimos("rosa")[1]
+    assert f"Alta: cliente={nueva.id} previas=2 usuario=7" in caplog.messages

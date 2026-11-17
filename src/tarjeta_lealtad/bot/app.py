@@ -15,7 +15,7 @@ from tarjeta_lealtad import db, diseno, render
 from tarjeta_lealtad.bot import handlers
 from tarjeta_lealtad.bot.acciones import AccionesPendientes
 from tarjeta_lealtad.bot.handlers import TIPOS_DE_UPDATE, Aplicacion, registrar_comandos
-from tarjeta_lealtad.bot.seguridad import crear_filtro_dueno
+from tarjeta_lealtad.bot.seguridad import crear_filtro
 from tarjeta_lealtad.bot.web import crear_app_web
 from tarjeta_lealtad.config import Ajustes, verificar_diseno
 from tarjeta_lealtad.servicio import ServicioTarjetas
@@ -27,14 +27,14 @@ type AlIniciar = Callable[[Aplicacion], Coroutine[Any, Any, None]]
 
 def crear_aplicacion(
     servicio: ServicioTarjetas,
-    owner_id: int,
+    autorizados: frozenset[int],
     token: str,
     *,
     request: BaseRequest | None = None,
     con_updater: bool = True,
     al_iniciar: AlIniciar | None = None,
 ) -> Aplicacion:
-    """Aplicación con el servicio inyectado, el filtro del dueño y los handlers.
+    """Aplicación con el servicio inyectado, el filtro de personas autorizadas y los handlers.
 
     `con_updater=False` es para el modo webhook: los updates llegan por el servidor web.
     """
@@ -50,7 +50,7 @@ def crear_aplicacion(
     aplicacion = constructor.build()
     aplicacion.bot_data["servicio"] = servicio
     aplicacion.bot_data["acciones"] = AccionesPendientes()
-    aplicacion.add_handler(TypeHandler(Update, crear_filtro_dueno(owner_id)), group=-1)
+    aplicacion.add_handler(TypeHandler(Update, crear_filtro(autorizados)), group=-1)
     handlers.registrar_handlers(aplicacion)
     return aplicacion
 
@@ -97,6 +97,7 @@ def _preparar() -> tuple[Ajustes, ServicioTarjetas]:
         sys.exit(1)
     _configurar_logs(ajustes.log_level.upper())
     log.info("Configuración cargada")
+    log.info("Personas autorizadas: %s", len(ajustes.ids_autorizados))  # nunca los IDs
     try:
         verificar_diseno(ajustes.citas_por_tarjeta)
         render.ajustar_nombre("Prueba")  # comprueba que plantilla, flor y fuente cargan
@@ -119,7 +120,7 @@ def main() -> None:
     ajustes, servicio = _preparar()
     token = ajustes.bot_token.get_secret_value()
     if ajustes.webhook_url and ajustes.webhook_secret:  # modo webhook (validado en Ajustes)
-        aplicacion = crear_aplicacion(servicio, ajustes.owner_id, token, con_updater=False)
+        aplicacion = crear_aplicacion(servicio, ajustes.ids_autorizados, token, con_updater=False)
         app_web = crear_app_web(
             aplicacion, ajustes.webhook_url, ajustes.webhook_secret.get_secret_value()
         )
@@ -127,7 +128,9 @@ def main() -> None:
         # log_config=None: uvicorn usa la configuración de logs de este proceso.
         uvicorn.run(app_web, host=ajustes.ip, port=ajustes.port, access_log=False, log_config=None)
         return
-    aplicacion = crear_aplicacion(servicio, ajustes.owner_id, token, al_iniciar=al_iniciar_polling)
+    aplicacion = crear_aplicacion(
+        servicio, ajustes.ids_autorizados, token, al_iniciar=al_iniciar_polling
+    )
     log.info("Modo polling")
     # python-telegram-bot procesa los updates de uno en uno (concurrent_updates=False) y aquí no
     # se descartan los pendientes: se procesan al arrancar con su fecha original.

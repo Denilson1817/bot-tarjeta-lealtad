@@ -4,6 +4,7 @@
 - `tg`: ejecuta comandos y toques de botón como lo haría python-telegram-bot.
 - `api_falsa`: simula la API de Telegram al nivel HTTP (`BaseRequest`), para usar el bot y la
   aplicación reales sin red (mismo patrón que el bot de finanzas).
+- `update_de`: updates en JSON, en privado o en un grupo (IDs de chat negativos).
 """
 
 import json
@@ -76,8 +77,11 @@ class Telegram:
     ) -> None:
         await handler(self.update(mensaje), self.contexto(args))
 
-    async def pulsar(self, prompt: MagicMock, data: str) -> MagicMock:
-        """Toca un botón del mensaje `prompt`; devuelve la consulta (para revisar `answer`)."""
+    async def pulsar(self, prompt: MagicMock, data: str, de: int | None = None) -> MagicMock:
+        """Toca un botón del mensaje `prompt`; devuelve la consulta (para revisar `answer`).
+
+        Con `de`, el toque lo hace esa cuenta y no la que envió el mensaje original.
+        """
         from tarjeta_lealtad.bot import handlers
 
         consulta = MagicMock()
@@ -87,6 +91,8 @@ class Telegram:
         update = self.update(prompt)
         update.message = None
         update.callback_query = consulta
+        if de is not None:
+            update.effective_user = MagicMock(id=de, username=f"u{de}")
         await handlers.al_pulsar(update, self.contexto())
         return consulta
 
@@ -130,10 +136,11 @@ class FakeTelegramAPI(BaseRequest):
         pass
 
     def _mensaje(self, params: dict[str, Any], **extra: Any) -> dict[str, Any]:
+        chat_id = int(params.get("chat_id", 1))
         return {
             "message_id": next(self._ids),
             "date": int(FECHA_POR_DEFECTO.timestamp()),
-            "chat": {"id": int(params.get("chat_id", 1)), "type": "private"},
+            "chat": {"id": chat_id, "type": "private" if chat_id > 0 else "group"},
             **extra,
         }
 
@@ -176,17 +183,35 @@ def api_falsa() -> Callable[..., FakeTelegramAPI]:
 
 
 def update_json(
-    update_id: int, texto: str | None = None, *, de: int = 1, data: str | None = None
+    update_id: int,
+    texto: str | None = None,
+    *,
+    de: int = 1,
+    data: str | None = None,
+    chat: int | None = None,
+    aviso: bool = False,
 ) -> dict[str, Any]:
-    """Update de Telegram en JSON: un mensaje de texto o, con `data`, un toque de botón."""
+    """Update de Telegram en JSON: un mensaje de texto o, con `data`, un toque de botón.
+
+    Sin `chat`, el chat es el privado con `de`; con `chat` (negativo), es un grupo. Con `aviso`,
+    el mensaje es un aviso del grupo (miembro nuevo) y no lleva texto.
+    """
     usuario = {"id": de, "is_bot": False, "first_name": "Persona", "username": f"u{de}"}
-    mensaje = {
+    datos_chat = (
+        {"id": de, "type": "private"}
+        if chat is None
+        else {"id": chat, "type": "group", "title": "Grupo"}
+    )
+    mensaje: dict[str, Any] = {
         "message_id": update_id,
         "date": int(FECHA_POR_DEFECTO.timestamp()),
-        "chat": {"id": de, "type": "private"},
+        "chat": datos_chat,
         "from": usuario,
-        "text": texto or "",
     }
+    if aviso:
+        mensaje["new_chat_members"] = [usuario]
+    else:
+        mensaje["text"] = texto or ""
     if texto and texto.startswith("/"):
         comando = texto.split()[0]
         mensaje["entities"] = [{"type": "bot_command", "offset": 0, "length": len(comando)}]

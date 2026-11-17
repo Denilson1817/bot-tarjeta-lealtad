@@ -65,6 +65,12 @@ def _argumentos(context: Contexto) -> str:
     return " ".join(context.args or [])
 
 
+def _autor(update: Update) -> int:
+    """Quién envió el comando o pulsó el botón (FR-010 de la 003); el filtro asegura que existe."""
+    usuario = update.effective_user
+    return usuario.id if usuario is not None else 0
+
+
 def _teclado(token: str, opciones: list[tuple[str, str]]) -> InlineKeyboardMarkup:
     """Un botón por fila; cada uno lleva el token de la acción y su opción."""
     return InlineKeyboardMarkup(
@@ -116,12 +122,13 @@ async def _resolver(
     fecha: datetime,
     servicio: ServicioTarjetas,
     acciones: AccionesPendientes,
+    autor: int,
 ) -> None:
     """Busca al cliente; si hay dudas, pregunta con botones (FR-005 – FR-007 de la 001)."""
     resultado = servicio.buscar(texto)
     match resultado:
         case Encontrado(cliente=cliente):
-            await _continuar(message, comando, cliente.id, fecha, servicio, acciones)
+            await _continuar(message, comando, cliente.id, fecha, servicio, acciones, autor)
         case Varios(opciones=opciones):
             await _ofrecer_opciones(
                 message,
@@ -174,7 +181,7 @@ async def _ofrecer_opciones(
     servicio: ServicioTarjetas,
     acciones: AccionesPendientes,
 ) -> None:
-    """Un botón por cliente (y "Crear «X»" si se puede crear) para que el dueño elija."""
+    """Un botón por cliente (y "Crear «X»" si se puede crear) para que se elija."""
     botones = [(textos.etiqueta_cliente(o, servicio.zona), str(o.id)) for o in opciones]
     if nombre_nuevo is not None:
         botones.append((textos.boton_crear(nombre_nuevo), "nuevo"))
@@ -198,6 +205,7 @@ async def _continuar(
     fecha: datetime,
     servicio: ServicioTarjetas,
     acciones: AccionesPendientes,
+    autor: int,
 ) -> None:
     """Qué hacer con el cliente ya resuelto, según el comando que lo pidió."""
     if comando == "cita":
@@ -216,7 +224,7 @@ async def _continuar(
                 reply_markup=_si_no(token, textos.BOTON_SI_REGISTRAR),
             )
             return
-        await _registrar(message, cliente_id, fecha, servicio)
+        await _registrar(message, cliente_id, fecha, servicio, autor)
     elif comando == "tarjeta":  # solo consulta: no registra nada
         pie = textos.pie_tarjeta(servicio.resumen(cliente_id))
         await enviar_tarjeta(message, servicio, cliente_id, None, pie)
@@ -242,10 +250,12 @@ async def _continuar(
 
 
 async def _registrar(
-    message: Message, cliente_id: int, fecha: datetime, servicio: ServicioTarjetas
+    message: Message, cliente_id: int, fecha: datetime, servicio: ServicioTarjetas, autor: int
 ) -> None:
     resultado = servicio.registrar_cita(cliente_id, fecha)
-    log.info("Cita registrada: cliente=%s premio=%s", cliente_id, resultado.es_premio)
+    log.info(
+        "Cita registrada: cliente=%s premio=%s usuario=%s", cliente_id, resultado.es_premio, autor
+    )
     pie = textos.pie_cita(resultado, servicio.citas_por_tarjeta)
     await enviar_tarjeta(message, servicio, cliente_id, resultado.flores, pie)
 
@@ -267,7 +277,12 @@ def separar_alta(args: str) -> tuple[str, int]:
 
 
 async def _crear_alta(
-    message: Message, nombre: str, previas: int, fecha: datetime, servicio: ServicioTarjetas
+    message: Message,
+    nombre: str,
+    previas: int,
+    fecha: datetime,
+    servicio: ServicioTarjetas,
+    autor: int,
 ) -> None:
     try:
         cliente = servicio.crear_cliente(nombre, previas, fecha)
@@ -277,20 +292,20 @@ async def _crear_alta(
     except CitasPreviasFueraDeRango:
         await message.reply_text(textos.previas_fuera_de_rango(servicio.citas_por_tarjeta - 1))
         return
-    log.info("Alta: cliente=%s previas=%s", cliente.id, previas)
+    log.info("Alta: cliente=%s previas=%s usuario=%s", cliente.id, previas, autor)
     await enviar_tarjeta(message, servicio, cliente.id, None, textos.pie_alta(cliente))
 
 
 async def _crear_y_registrar(
-    message: Message, nombre: str, fecha: datetime, servicio: ServicioTarjetas
+    message: Message, nombre: str, fecha: datetime, servicio: ServicioTarjetas, autor: int
 ) -> None:
     try:
         cliente = servicio.crear_cliente(nombre, 0, fecha)
     except NombreInvalido as error:
         await message.reply_text(textos.nombre_invalido(error.motivo))
         return
-    log.info("Alta: cliente=%s previas=0", cliente.id)
-    await _registrar(message, cliente.id, fecha, servicio)
+    log.info("Alta: cliente=%s previas=0 usuario=%s", cliente.id, autor)
+    await _registrar(message, cliente.id, fecha, servicio, autor)
 
 
 # --- comandos ----------------------------------------------------------------------------------
@@ -310,7 +325,15 @@ async def _comando_con_cliente(update: Update, context: Contexto, comando: Coman
     if not texto:
         await message.reply_text(textos.uso(comando))
         return
-    await _resolver(message, texto, comando, message.date, _servicio(context), _acciones(context))
+    await _resolver(
+        message,
+        texto,
+        comando,
+        message.date,
+        _servicio(context),
+        _acciones(context),
+        _autor(update),
+    )
 
 
 async def cmd_cita(update: Update, context: Contexto) -> None:
@@ -360,7 +383,7 @@ async def cmd_alta(update: Update, context: Contexto) -> None:
             reply_markup=_si_no(token, textos.BOTON_CREAR_OTRO),
         )
         return
-    await _crear_alta(message, nombre, previas, message.date, servicio)
+    await _crear_alta(message, nombre, previas, message.date, servicio, _autor(update))
 
 
 async def cmd_clientes(update: Update, context: Contexto) -> None:
@@ -387,6 +410,7 @@ async def al_pulsar(update: Update, context: Contexto) -> None:
     if not isinstance(mensaje, Message):
         return
     servicio, acciones = _servicio(context), _acciones(context)
+    autor = _autor(update)  # quien pulsa, no quien pidió la acción
     datos = desempaquetar(consulta.data or "")
     accion = acciones.tomar(datos[0]) if datos else None  # una sola vez (FR-011 de la 001)
     if datos is None or accion is None:
@@ -401,7 +425,7 @@ async def al_pulsar(update: Update, context: Contexto) -> None:
     if accion.tipo == "elegir":
         if opcion == "nuevo":
             await _anotar(mensaje, textos.elegido(textos.boton_crear(accion.nombre)))
-            await _crear_y_registrar(mensaje, accion.nombre, fecha, servicio)
+            await _crear_y_registrar(mensaje, accion.nombre, fecha, servicio, autor)
             return
         cliente_id = int(opcion)
         if cliente_id not in accion.cliente_ids:
@@ -409,21 +433,23 @@ async def al_pulsar(update: Update, context: Contexto) -> None:
             return
         resumen = servicio.resumen(cliente_id)
         await _anotar(mensaje, textos.elegido(f"{resumen.nombre} #{resumen.id}"))
-        await _continuar(mensaje, accion.comando, cliente_id, fecha, servicio, acciones)
+        await _continuar(mensaje, accion.comando, cliente_id, fecha, servicio, acciones, autor)
     elif accion.tipo == "crear_y_cita":
         await _anotar(mensaje, textos.elegido(textos.BOTON_CREAR))
-        await _crear_y_registrar(mensaje, accion.nombre, fecha, servicio)
+        await _crear_y_registrar(mensaje, accion.nombre, fecha, servicio, autor)
     elif accion.tipo == "confirmar_mismo_dia":
         await _anotar(mensaje, textos.elegido(textos.BOTON_SI_REGISTRAR))
-        await _registrar(mensaje, accion.cliente_ids[0], fecha, servicio)
+        await _registrar(mensaje, accion.cliente_ids[0], fecha, servicio, autor)
     elif accion.tipo == "crear_homonimo":
         await _anotar(mensaje, textos.elegido(textos.BOTON_CREAR_OTRO))
-        await _crear_alta(mensaje, accion.nombre, accion.citas_previas, fecha, servicio)
+        await _crear_alta(mensaje, accion.nombre, accion.citas_previas, fecha, servicio, autor)
     elif accion.tipo == "confirmar_deshacer":
-        await _deshacer(mensaje, accion, servicio)
+        await _deshacer(mensaje, accion, servicio, autor)
 
 
-async def _deshacer(mensaje: Message, accion: Accion, servicio: ServicioTarjetas) -> None:
+async def _deshacer(
+    mensaje: Message, accion: Accion, servicio: ServicioTarjetas, autor: int
+) -> None:
     cliente_id = accion.cliente_ids[0]
     cita = servicio.ultima_cita_vigente(cliente_id)
     if cita is None or cita.id != accion.cita_id:  # no anular una cita distinta de la mostrada
@@ -434,7 +460,7 @@ async def _deshacer(mensaje: Message, accion: Accion, servicio: ServicioTarjetas
     if resumen is None:
         await mensaje.reply_text(textos.nada_que_deshacer(servicio.resumen(cliente_id)))
         return
-    log.info("Cita anulada: cliente=%s premio=%s", cliente_id, cita.es_premio)
+    log.info("Cita anulada: cliente=%s premio=%s usuario=%s", cliente_id, cita.es_premio, autor)
     pie = textos.pie_deshacer(resumen, era_premio=cita.es_premio)
     await enviar_tarjeta(mensaje, servicio, cliente_id, None, pie)
 
@@ -459,7 +485,7 @@ async def registrar_comandos(aplicacion: Aplicacion) -> None:
 
 
 def registrar_handlers(application: Aplicacion) -> None:
-    """Comandos, botones y, al final, lo que no es un comando conocido."""
+    """Comandos, botones y, al final, lo que no es un comando conocido (solo en privado)."""
     application.add_handler(CommandHandler(["start", "ayuda"], cmd_ayuda))
     application.add_handler(CommandHandler("cita", cmd_cita))
     application.add_handler(CommandHandler("alta", cmd_alta))
@@ -467,5 +493,7 @@ def registrar_handlers(application: Aplicacion) -> None:
     application.add_handler(CommandHandler("tarjeta", cmd_tarjeta))
     application.add_handler(CommandHandler("clientes", cmd_clientes))
     application.add_handler(CallbackQueryHandler(al_pulsar, pattern=rf"^{PREFIJO}:"))
-    application.add_handler(MessageHandler(filters.ALL, sin_comando))  # debe ser el último
+    # Debe ser el último. Solo en privado: en un grupo, la conversación y los avisos del grupo no
+    # reciben respuesta (FR-008 de la 003).
+    application.add_handler(MessageHandler(filters.ChatType.PRIVATE, sin_comando))
     application.add_error_handler(al_fallar)

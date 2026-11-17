@@ -2,11 +2,11 @@
 
 import re
 from pathlib import Path
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import Field, SecretStr, field_validator, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 from tarjeta_lealtad import diseno
 
@@ -20,6 +20,9 @@ class Ajustes(BaseSettings):
 
     bot_token: SecretStr
     owner_id: int
+    # Otras personas autorizadas, además del dueño: IDs separados por comas (feature 003).
+    # NoDecode: el valor es texto plano, no JSON.
+    autorizados: Annotated[frozenset[int], NoDecode] = frozenset()
     zona_horaria: str
     citas_por_tarjeta: int = Field(default=10, ge=2)
     db_path: Path = Path("data/lealtad.db")
@@ -39,6 +42,25 @@ class Ajustes(BaseSettings):
             raise ValueError(f"zona horaria desconocida: {valor!r}") from error
         return valor
 
+    @field_validator("autorizados", mode="before")
+    @classmethod
+    def _separar_por_comas(cls, valor: object) -> object:
+        if not isinstance(valor, str):
+            return valor
+        ids: set[int] = set()
+        for parte in valor.split(","):
+            parte = parte.strip()
+            if not parte:  # p. ej., una coma al final
+                continue
+            try:
+                ids.add(int(parte))
+            except ValueError:
+                raise ValueError(
+                    "AUTORIZADOS debe ser una lista de IDs numéricos separados por comas; "
+                    f"valor inválido: {parte!r}"
+                ) from None
+        return frozenset(ids)
+
     @model_validator(mode="after")
     def _webhook_completo(self) -> Self:
         if self.webhook_url is None:
@@ -56,6 +78,11 @@ class Ajustes(BaseSettings):
     @property
     def zona(self) -> ZoneInfo:
         return ZoneInfo(self.zona_horaria)
+
+    @property
+    def ids_autorizados(self) -> frozenset[int]:
+        """El dueño siempre está autorizado (FR-002 de la 003)."""
+        return frozenset({self.owner_id}) | self.autorizados
 
     @property
     def modo(self) -> Literal["polling", "webhook"]:
